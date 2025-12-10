@@ -4,7 +4,8 @@ module.exports = function(sequelize, DataTypes) {
     id_consulta: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      primaryKey: true
+      primaryKey: true,
+      autoIncrement: true
     },
     id_status_consulta: {
       type: DataTypes.INTEGER,
@@ -39,43 +40,7 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true
     }
   }, {
-    sequelize,
     tableName: 'consulta',
-    schema: 'public',
-    timestamps: false,
-    indexes: [
-      {
-        name: "consulta_pk",
-        unique: true,
-        fields: [
-          { name: "id_consulta" },
-        ]
-      },
-      {
-        name: "med_sulta_fk",
-        fields: [
-          { name: "id_medico" },
-        ]
-      },
-      {
-        name: "paci_sulta_fk",
-        fields: [
-          { name: "numero_utente" },
-        ]
-      },
-      {
-        name: "pk_consulta",
-        unique: true,
-        fields: [
-          { name: "id_consulta" },
-        ]
-      },
-      {
-        name: "sultastatus_sulta_fk",
-        fields: [
-          { name: "id_status_consulta" },
-        ]
-      },
-    ]
+    timestamps: false
   });
 };

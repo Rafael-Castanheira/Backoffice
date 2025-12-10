@@ -14,10 +14,10 @@ if (config.use_env_variable) {
 }
 
 const initModels = require('./init-models');
-const db = initModels(sequelize);
+const models = initModels(sequelize);
 
-// expose sequelize instances similar to sequelize-cli generated file
-db.sequelize = sequelize;
-db.Sequelize = Sequelize;
+// expose sequelize instances
+models.sequelize = sequelize;
+models.Sequelize = Sequelize;
 
-module.exports = db;
+module.exports = models;

@@ -1,0 +1,34 @@
+### Teste de conexão
+GET http://localhost:3001/
+
+### Listar todas as consultas
+GET http://localhost:3001/consulta
+
+### Listar consultas com filtros
+GET http://localhost:3001/consulta?medicoId=1&status=1
+
+### Criar consulta
+POST http://localhost:3001/consulta
+Content-Type: application/json
+
+{
+  "id_medico": 1,
+  "numero_utente": 123456,
+  "data_hora_consulta": "2025-12-20",
+  "observacoes": "teste"
+}
+
+### Obter consulta por ID
+GET http://localhost:3001/consulta/1
+
+### Atualizar consulta
+PUT http://localhost:3001/consulta/1
+Content-Type: application/json
+
+{
+  "id_status_consulta": 2,
+  "observacoes": "Consulta atrasada"
+}
+
+### Apagar consulta
+DELETE http://localhost:3001/consulta/1
