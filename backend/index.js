@@ -11,6 +11,21 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// Swagger
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./swagger');
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Serve raw OpenAPI JSON for tools that expect a .json/.yaml URL
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
+// Mount routes
+app.use('/consulta', require('./routes/consulta_route'));
+
 // Rota de Teste
 app.get('/', (req, res) => {
   res.json({ message: 'O servidor Express está a funcionar!' });
@@ -20,13 +35,20 @@ app.get('/', (req, res) => {
 
 // Usamos db.sequelize.sync() para garantir que a BD está ligada
 // antes de o servidor começar a aceitar pedidos.
-db.sequelize.sync().then(() => {
-  console.log('✅ Base de dados ligada com sucesso.');
+async function start() {
+  try {
+    // Try to authenticate and sync DB, but don't prevent the server from starting if DB is down.
+    await db.sequelize.authenticate();
+    await db.sequelize.sync();
+    console.log('✅ Base de dados ligada com sucesso.');
+  } catch (err) {
+    console.error('❌ Erro ao ligar à base de dados:', err.message || err);
+    console.warn('⚠️ Iniciando o servidor mesmo sem ligação à base de dados. Swagger estará disponível.');
+  }
 
   app.listen(PORT, () => {
     console.log(`🚀 Servidor backend a correr em http://localhost:${PORT}`);
   });
+}
 
-}).catch(err => {
-  console.error('❌ Erro ao ligar à base de dados:', err);
-});
+start();
