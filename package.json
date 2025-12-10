@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "pg": "^8.16.3",
+    "pg-hstore": "^2.3.4",
+    "sequelize-auto": "^0.8.8"
+  }
+}

@@ -2,7 +2,7 @@
   "development": {
     "username": "postgres",
     "password": "reH723BTK",
-    "database": "PI4_DB",
+    "database": "PI4_DATABASE",
     "host": "127.0.0.1",
     "dialect": "postgres"
   },
