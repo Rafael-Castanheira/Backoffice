@@ -9,8 +9,29 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// Swagger
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./swagger');
+
+// Serve Swagger UI and raw JSON spec
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get('/api-docs.json', (req, res) => res.json(swaggerSpec));
+
 // Mount routes
 app.use('/consulta', require('./routes/consulta_route'));
+app.use('/medico', require('./routes/medico_route'));
+app.use('/paciente', require('./routes/paciente_route'));
+app.use('/statusconsulta', require('./routes/statusconsulta_route'));
+app.use('/notificacao', require('./routes/notificacao_route'));
+app.use('/horariomedico', require('./routes/horariomedico_route'));
+app.use('/historicomedico', require('./routes/historicomedico_route'));
+app.use('/tipo_notificacao', require('./routes/tipo_notificacao_route'));
+app.use('/tipoparentesco', require('./routes/tipoparentesco_route'));
+app.use('/tipotratamento', require('./routes/tipotratamento_route'));
+app.use('/tipouser', require('./routes/tipouser_route'));
+app.use('/tratamentorealizado', require('./routes/tratamentorealizado_route'));
+app.use('/utilizadores', require('./routes/utilizadores_route'));
+app.use('/med_spec', require('./routes/med_spec_route'));
 
 // Rota de Teste
 app.get('/', (req, res) => {

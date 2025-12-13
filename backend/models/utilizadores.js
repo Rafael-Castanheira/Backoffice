@@ -9,10 +9,8 @@ module.exports = function(sequelize, DataTypes) {
     id_medico: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      references: {
-        model: 'medico',
-        key: 'id_medico'
-      }
+      // removed direct FK reference to avoid circular constraint on initial sync
+      // (medico also references utilizadores). Add FK using migrations if needed.
     },
     id_tipo_user: {
       type: DataTypes.INTEGER,
