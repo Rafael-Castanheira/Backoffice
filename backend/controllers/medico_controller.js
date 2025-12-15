@@ -1,55 +1,60 @@
-const { models } = require('../config/db');
+const db = require('../models');
 
-// CRUD for Medico
-exports.create = async (req, res) => {
-  try {
-    const record = await models.MEDICO.create(req.body);
-    res.status(201).send(record);
-  } catch (err) {
-    res.status(500).send({ message: err.message });
-  }
-};
+const model = db.medico;
+
+const getPk = (m) => (m && m.primaryKeyAttributes && m.primaryKeyAttributes[0]) || 'id';
 
 exports.findAll = async (req, res) => {
   try {
-    const records = await models.MEDICO.findAll();
-    res.send(records);
+    const items = await model.findAll();
+    res.json(items);
   } catch (err) {
-    res.status(500).send({ message: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
 exports.findOne = async (req, res) => {
   try {
-    const id = req.params.id;
-    const rec = await models.MEDICO.findByPk(id);
-    if (!rec) return res.status(404).send({ message: 'Not found' });
-    res.send(rec);
+    const item = await model.findByPk(req.params.id);
+    if (!item) return res.status(404).json({ message: 'Not found' });
+    res.json(item);
   } catch (err) {
-    res.status(500).send({ message: err.message });
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.create = async (req, res) => {
+  try {
+    const created = await model.create(req.body);
+    res.status(201).json(created);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
 };
 
 exports.update = async (req, res) => {
   try {
-    const id = req.params.id;
-    const rec = await models.MEDICO.findByPk(id);
-    if (!rec) return res.status(404).send({ message: 'Not found' });
-    await rec.update(req.body);
-    res.send({ message: 'Updated' });
+    const pk = getPk(model);
+    const where = {};
+    where[pk] = req.params.id;
+    const [num] = await model.update(req.body, { where });
+    if (num === 0) return res.status(404).json({ message: 'Not found' });
+    const updated = await model.findOne({ where });
+    res.json(updated);
   } catch (err) {
-    res.status(500).send({ message: err.message });
+    res.status(400).json({ message: err.message });
   }
 };
 
 exports.delete = async (req, res) => {
   try {
-    const id = req.params.id;
-    const rec = await models.MEDICO.findByPk(id);
-    if (!rec) return res.status(404).send({ message: 'Not found' });
-    await rec.destroy();
+    const pk = getPk(model);
+    const where = {};
+    where[pk] = req.params.id;
+    const num = await model.destroy({ where });
+    if (num === 0) return res.status(404).json({ message: 'Not found' });
     res.status(204).send();
   } catch (err) {
-    res.status(500).send({ message: err.message });
+    res.status(500).json({ message: err.message });
   }
 };

@@ -1,55 +1,63 @@
-const { models } = require('../config/db');
+const db = require('../models');
 
-// 1. Criar nova Especialidade
-exports.create = async (req, res) => {
-    try {
-        const { DESCRICAO_PT, DESCRICAO_EN } = req.body;
+const model = db.especialidade;
 
-        if (!DESCRICAO_PT) {
-            return res.status(400).send({ message: "A descrição em PT é obrigatória!" });
-        }
+const getPk = (m) => (m && m.primaryKeyAttributes && m.primaryKeyAttributes[0]) || 'id';
 
-        const data = await models.ESPECIALIDADE.create({
-            DESCRICAO_PT,
-            DESCRICAO_EN
-        });
-
-        res.status(201).send(data);
-    } catch (error) {
-        res.status(500).send({ message: "Erro ao criar especialidade: " + error.message });
-    }
-};
-
-// 2. Listar todas
 exports.findAll = async (req, res) => {
     try {
-        const data = await models.ESPECIALIDADE.findAll({
-            order: [['DESCRICAO_PT', 'ASC']]
-        });
-        res.send(data);
-    } catch (error) {
-        res.status(500).send({ message: "Erro ao listar: " + error.message });
+        const items = await model.findAll();
+        res.json(items);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 };
 
-// 3. Obter uma
 exports.findOne = async (req, res) => {
     try {
-        const id = req.params.id;
-        const data = await models.ESPECIALIDADE.findByPk(id);
-
-        if (data) res.send(data);
-        else res.status(404).send({ message: "Especialidade não encontrada." });
-
-    } catch (error) {
-        res.status(500).send({ message: "Erro ao buscar: " + error.message });
+        const item = await model.findByPk(req.params.id);
+        if (!item) return res.status(404).json({ message: 'Not found' });
+        res.json(item);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 };
 
-// 4. Atualizar
+exports.create = async (req, res) => {
+    try {
+        const created = await model.create(req.body);
+        res.status(201).json(created);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+};
+
 exports.update = async (req, res) => {
     try {
-        const id = req.params.id;
+        const pk = getPk(model);
+        const where = {};
+        where[pk] = req.params.id;
+        const [num] = await model.update(req.body, { where });
+        if (num === 0) return res.status(404).json({ message: 'Not found' });
+        const updated = await model.findOne({ where });
+        res.json(updated);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+};
+
+exports.delete = async (req, res) => {
+    try {
+        const pk = getPk(model);
+        const where = {};
+        where[pk] = req.params.id;
+        const num = await model.destroy({ where });
+        if (num === 0) return res.status(404).json({ message: 'Not found' });
+        res.json({ message: 'Deleted' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
         const [num] = await models.ESPECIALIDADE.update(req.body, {
             where: { ID_ESPECIALIDADE: id }
         });

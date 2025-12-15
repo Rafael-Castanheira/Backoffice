@@ -1,55 +1,63 @@
-const { models } = require('../config/db');
+const db = require('../models');
 
-// 1. Criar novo registo de Histórico Dentário
-exports.create = async (req, res) => {
+const model = db.historicodentario;
+
+const getPk = (m) => (m && m.primaryKeyAttributes && m.primaryKeyAttributes[0]) || 'id';
+
+exports.findAll = async (req, res) => {
     try {
-        const { 
-            NUMERO_UTENTE, 
-            MOTIVO_CONSULTA_INICIAL, 
-            CONDICAO_DENT_PREEXISTS, 
-            EXPERIENCIA_ANESTESIAS, 
-            HISTORICO_DOR_SENSIBILIDADE 
-        } = req.body;
-
-        if (!NUMERO_UTENTE) {
-            return res.status(400).send({ message: "O Número de Utente é obrigatório!" });
-        }
-
-        const data = await models.HISTORICODENTARIO.create({
-            NUMERO_UTENTE,
-            MOTIVO_CONSULTA_INICIAL,
-            CONDICAO_DENT_PREEXISTS,
-            EXPERIENCIA_ANESTESIAS,
-            HISTORICO_DOR_SENSIBILIDADE
-        });
-
-        res.status(201).send(data);
-    } catch (error) {
-        res.status(500).send({ message: "Erro ao criar registo: " + error.message });
+        const items = await model.findAll();
+        res.json(items);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 };
 
-// 2. Listar histórico de UM Paciente específico
-exports.findByPaciente = async (req, res) => {
-    try {
-        const { utenteId } = req.params;
-
-        const data = await models.HISTORICODENTARIO.findAll({
-            where: { NUMERO_UTENTE: utenteId },
-            order: [['DATA_REGISTO', 'DESC']] // Do mais recente para o mais antigo
-        });
-        
-        res.send(data);
-    } catch (error) {
-        res.status(500).send({ message: "Erro ao listar histórico: " + error.message });
-    }
-};
-
-// 3. Obter um registo específico pelo ID
 exports.findOne = async (req, res) => {
     try {
-        const id = req.params.id;
-        const data = await models.HISTORICODENTARIO.findByPk(id);
+        const item = await model.findByPk(req.params.id);
+        if (!item) return res.status(404).json({ message: 'Not found' });
+        res.json(item);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+exports.create = async (req, res) => {
+    try {
+        const created = await model.create(req.body);
+        res.status(201).json(created);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+};
+
+exports.update = async (req, res) => {
+    try {
+        const pk = getPk(model);
+        const where = {};
+        where[pk] = req.params.id;
+        const [num] = await model.update(req.body, { where });
+        if (num === 0) return res.status(404).json({ message: 'Not found' });
+        const updated = await model.findOne({ where });
+        res.json(updated);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+};
+
+exports.delete = async (req, res) => {
+    try {
+        const pk = getPk(model);
+        const where = {};
+        where[pk] = req.params.id;
+        const num = await model.destroy({ where });
+        if (num === 0) return res.status(404).json({ message: 'Not found' });
+        res.json({ message: 'Deleted' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
 
         if (data) res.send(data);
         else res.status(404).send({ message: "Registo não encontrado." });

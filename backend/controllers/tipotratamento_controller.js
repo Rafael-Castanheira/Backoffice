@@ -1,7 +1,60 @@
-const { models } = require('../config/db');
+const db = require('../models');
 
-exports.create = async (req, res) => { try { res.status(201).send(await models.TIPOTRATAMENTO.create(req.body)); } catch (err) { res.status(500).send({ message: err.message }); } };
-exports.findAll = async (req, res) => { try { res.send(await models.TIPOTRATAMENTO.findAll()); } catch (err) { res.status(500).send({ message: err.message }); } };
-exports.findOne = async (req, res) => { try { const rec = await models.TIPOTRATAMENTO.findByPk(req.params.id); if (!rec) return res.status(404).send({message:'Not found'}); res.send(rec);}catch(err){res.status(500).send({message:err.message})} };
-exports.update = async (req, res) => { try { const rec = await models.TIPOTRATAMENTO.findByPk(req.params.id); if (!rec) return res.status(404).send({message:'Not found'}); await rec.update(req.body); res.send({message:'Updated'});}catch(err){res.status(500).send({message:err.message})} };
-exports.delete = async (req, res) => { try { const rec = await models.TIPOTRATAMENTO.findByPk(req.params.id); if (!rec) return res.status(404).send({message:'Not found'}); await rec.destroy(); res.status(204).send();}catch(err){res.status(500).send({message:err.message})} };
+const model = db.tipotratamento;
+
+const getPk = (m) => (m && m.primaryKeyAttributes && m.primaryKeyAttributes[0]) || 'id';
+
+exports.findAll = async (req, res) => {
+	try {
+		const items = await model.findAll();
+		res.json(items);
+	} catch (err) {
+		res.status(500).json({ message: err.message });
+	}
+};
+
+exports.findOne = async (req, res) => {
+	try {
+		const item = await model.findByPk(req.params.id);
+		if (!item) return res.status(404).json({ message: 'Not found' });
+		res.json(item);
+	} catch (err) {
+		res.status(500).json({ message: err.message });
+	}
+};
+
+exports.create = async (req, res) => {
+	try {
+		const created = await model.create(req.body);
+		res.status(201).json(created);
+	} catch (err) {
+		res.status(400).json({ message: err.message });
+	}
+};
+
+exports.update = async (req, res) => {
+	try {
+		const pk = getPk(model);
+		const where = {};
+		where[pk] = req.params.id;
+		const [num] = await model.update(req.body, { where });
+		if (num === 0) return res.status(404).json({ message: 'Not found' });
+		const updated = await model.findOne({ where });
+		res.json(updated);
+	} catch (err) {
+		res.status(400).json({ message: err.message });
+	}
+};
+
+exports.delete = async (req, res) => {
+	try {
+		const pk = getPk(model);
+		const where = {};
+		where[pk] = req.params.id;
+		const num = await model.destroy({ where });
+		if (num === 0) return res.status(404).json({ message: 'Not found' });
+		res.json({ message: 'Deleted' });
+	} catch (err) {
+		res.status(500).json({ message: err.message });
+	}
+};

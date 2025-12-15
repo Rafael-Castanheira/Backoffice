@@ -1,55 +1,63 @@
-const { models } = require('../config/db');
+const db = require('../models');
 
-// 1. Criar novo registo de Hábitos
-exports.create = async (req, res) => {
+const model = db.habitosestilovida;
+
+const getPk = (m) => (m && m.primaryKeyAttributes && m.primaryKeyAttributes[0]) || 'id';
+
+exports.findAll = async (req, res) => {
     try {
-        const { NUMERO_UTENTE, HIGIENE_ORAL, HABITOS_ALIMENTARES, CONSUMO_SUBSTANCIAS, BRUXISMO, ATIVIDADES_DESPORTIVAS } = req.body;
-
-        if (!NUMERO_UTENTE) {
-            return res.status(400).send({ message: "O Número de Utente é obrigatório!" });
-        }
-
-        const data = await models.HABITOSESTILOVIDA.create({
-            NUMERO_UTENTE,
-            HIGIENE_ORAL,
-            HABITOS_ALIMENTARES,
-            CONSUMO_SUBSTANCIAS,
-            BRUXISMO, // Boolean
-            ATIVIDADES_DESPORTIVAS
-        });
-
-        res.status(201).send(data);
-    } catch (error) {
-        res.status(500).send({ message: "Erro ao criar registo: " + error.message });
+        const items = await model.findAll();
+        res.json(items);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 };
 
-// 2. Listar histórico de UM Paciente específico
-exports.findByPaciente = async (req, res) => {
-    try {
-        const { utenteId } = req.params;
-
-        const data = await models.HABITOSESTILOVIDA.findAll({
-            where: { NUMERO_UTENTE: utenteId },
-            order: [['DATA_REGISTO', 'DESC']] // Mostra os mais recentes primeiro
-        });
-        
-        res.send(data);
-    } catch (error) {
-        res.status(500).send({ message: "Erro ao listar histórico: " + error.message });
-    }
-};
-
-// 3. Obter um registo específico pelo ID (do hábito, não do paciente)
 exports.findOne = async (req, res) => {
     try {
-        const id = req.params.id;
-        const data = await models.HABITOSESTILOVIDA.findByPk(id);
+        const item = await model.findByPk(req.params.id);
+        if (!item) return res.status(404).json({ message: 'Not found' });
+        res.json(item);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
 
-        if (data) res.send(data);
-        else res.status(404).send({ message: "Registo não encontrado." });
-    } catch (error) {
-        res.status(500).send({ message: error.message });
+exports.create = async (req, res) => {
+    try {
+        const created = await model.create(req.body);
+        res.status(201).json(created);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+};
+
+exports.update = async (req, res) => {
+    try {
+        const pk = getPk(model);
+        const where = {};
+        where[pk] = req.params.id;
+        const [num] = await model.update(req.body, { where });
+        if (num === 0) return res.status(404).json({ message: 'Not found' });
+        const updated = await model.findOne({ where });
+        res.json(updated);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+};
+
+exports.delete = async (req, res) => {
+    try {
+        const pk = getPk(model);
+        const where = {};
+        where[pk] = req.params.id;
+        const num = await model.destroy({ where });
+        if (num === 0) return res.status(404).json({ message: 'Not found' });
+        res.json({ message: 'Deleted' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
     }
 };
 

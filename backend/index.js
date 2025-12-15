@@ -32,6 +32,7 @@ app.use('/tipouser', require('./routes/tipouser_route'));
 app.use('/tratamentorealizado', require('./routes/tratamentorealizado_route'));
 app.use('/utilizadores', require('./routes/utilizadores_route'));
 app.use('/med_spec', require('./routes/med_spec_route'));
+app.use('/auth', require('./routes/auth_route'));
 
 // Rota de Teste
 app.get('/', (req, res) => {
