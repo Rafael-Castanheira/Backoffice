@@ -55,8 +55,8 @@ function initModels(sequelize) {
   horariomedico.belongsTo(medico, { as: "id_medico_medico", foreignKey: "id_medico"});
   medico.hasMany(horariomedico, { as: "horariomedicos", foreignKey: "id_medico"});
   med_spec.belongsTo(medico, { as: "id_medico_medico", foreignKey: "id_medico"});
-  medico.hasMany(med_spec, { as: "med_specs", foreignKey: "id_medico"});
-  utilizadores.belongsTo(medico, { as: "id_medico_medico", foreignKey: "id_medico"});
+  // medico.hasMany(med_spec, { as: "med_specs", foreignKey: "id_medico"});
+  // utilidades.belongsTo(medico, { as: "id_medico_medico", foreignKey: "id_medico"});
   medico.hasMany(utilizadores, { as: "utilizadores", foreignKey: "id_medico"});
   consulta.belongsTo(paciente, { as: "numero_utente_paciente", foreignKey: "numero_utente"});
   paciente.hasMany(consulta, { as: "consulta", foreignKey: "numero_utente"});

@@ -20,7 +20,8 @@ async function login(req, res) {
     return res.json({ token, user: { id: user.id_user, email: user.email, nome: user.nome } });
   } catch (err) {
     console.error('Auth login error:', err.message || err);
-    return res.status(500).json({ message: 'Erro interno' });
+    // Return the actual error message for debugging purposes
+    return res.status(500).json({ message: err.message || 'An unexpected error occurred' });
   }
 }
 

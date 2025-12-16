@@ -41,6 +41,47 @@ app.get('/', (req, res) => {
 
 // --- Iniciar o Servidor e a Base de Dados ---
 
+/**
+ * Creates a default Admin user type and a default Admin user if they don't exist.
+ * This ensures that on first startup, the application has an administrator.
+ */
+async function createAdminUserIfNotFound() {
+  try {
+    // 1. Ensure 'Admin' user type exists
+    const [adminUserType, wasUserTypeCreated] = await db.tipouser.findOrCreate({
+      where: { id_tipo_user: 1 },
+      defaults: {
+        id_tipo_user: 1,
+        descricao_pt: 'Admin',
+        descricao_en: 'Admin',
+      },
+    });
+
+    if (wasUserTypeCreated) {
+      console.log("-> Tipo de utilizador 'Admin' (ID 1) criado.");
+    }
+    
+    // 2. Ensure admin user exists using a fixed ID to prevent crashes
+    const [adminUser, wasAdminCreated] = await db.utilizadores.findOrCreate({
+      where: { email: 'admin@local' },
+      defaults: {
+        id_user: 9999, // Using a high, fixed ID is safer than MAX() during startup
+        nome: 'Admin User',
+        email: 'admin@local',
+        password_hash: 'adminpass', // Password shortened to fit schema (STRING(12))
+        id_tipo_user: adminUserType.id_tipo_user,
+      },
+    });
+
+    if (wasAdminCreated) {
+        console.log("-> Utilizador 'admin@local' (ID 9999) criado com sucesso.");
+    }
+
+  } catch (error) {
+    console.error('❌ Erro ao criar utilizador admin default:', error);
+  }
+}
+
 // Usamos db.sequelize.sync() para garantir que a BD está ligada
 // antes de o servidor começar a aceitar pedidos.
 async function start() {
@@ -49,6 +90,10 @@ async function start() {
     await db.sequelize.authenticate();
     await db.sequelize.sync();
     console.log('✅ Base de dados ligada com sucesso.');
+
+    // Create the default admin user if it doesn't exist
+    await createAdminUserIfNotFound();
+
   } catch (err) {
     console.error('❌ Erro ao ligar à base de dados:', err.message || err);
   }

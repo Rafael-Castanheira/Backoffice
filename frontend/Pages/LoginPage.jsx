@@ -13,7 +13,8 @@ const LoginPage = () => {
       setError('Por favor, insira o email.');
       return false;
     }
-    const re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\\.,;:\s@\"]+\.)+[^<>()[\]\\.,;:\s@\"]{2,})$/i;
+    // A more permissive regex to allow for local domains like 'admin@local'
+    const re = /^[^\s@]+@[^\s@]+$/;
     if (!re.test(email)) {
       setError('Email inválido.');
       return false;
@@ -35,6 +36,7 @@ const LoginPage = () => {
     if (!validate()) return;
     setLoading(true);
     try {
+      console.log('Fetching URL: /auth/login');
       const res = await fetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
