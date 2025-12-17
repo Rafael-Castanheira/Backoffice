@@ -79,26 +79,40 @@ export default function NovoPaciente() {
     setLoading(true);
     try {
       // Map frontend form fields to backend model fields
-      const payload = {
-        numero_utente: form.nif || 'TEMP-' + Date.now(), // Use NIF as utente or generate temp
-        nif: form.nif,
-        contacto_telefonico: form.contacto,
-        morada: form.morada,
-        data_nascimento: form.data_nascimento,
-        id_genero: form.genero ? parseInt(form.genero) : null,
-        id_estado_civil: form.estado_civil ? parseInt(form.estado_civil) : null
+      const generateTempUtente = () => {
+        const s = ('TMP' + Date.now()).replace(/[^A-Z0-9]/ig, '');
+        return s.slice(-9);
       };
+
+      const payload = {
+        numero_utente: form.nif ? String(form.nif).slice(0,9) : generateTempUtente(), // ensure max 9 chars
+        nif: form.nif || null,
+        contacto_telefonico: form.contacto || null,
+        morada: form.morada || null,
+        data_nascimento: form.data_nascimento || null,
+        id_genero: form.genero ? parseInt(form.genero) : null,
+        id_estado_civil: form.estado_civil ? parseInt(form.estado_civil) : null,
+        email: form.email || null
+      };
+
       const res = await fetch('/paciente', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.message || 'Erro ao guardar paciente');
       }
-      await res.json();
-      setSuccess('Paciente guardado com sucesso.');
+
+      const data = await res.json().catch(() => ({}));
+      if (data.temp_password) {
+        setSuccess(`Paciente guardado. Credenciais provisórias enviadas por email (senha: ${data.temp_password}).`);
+      } else {
+        setSuccess('Paciente guardado com sucesso.');
+      }
+
       setForm(initialState);
     } catch (err) {
       setError(err.message || 'Erro desconhecido');
