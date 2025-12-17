@@ -86,6 +86,19 @@ async function createAdminUserIfNotFound() {
 // antes de o servidor começar a aceitar pedidos.
 async function start() {
   try {
+    // In development, ensure tables exist by running the create script which is safe to run repeatedly.
+    // This helps when the DB is new and models/tables don't exist yet.
+    // Treat unset NODE_ENV as development for local convenience (so `npm run dev` triggers DB creation)
+    if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
+      try {
+        const { execSync } = require('child_process');
+        console.log('🔧 Ambiente de desenvolvimento detectado — executando script de criação de tabelas (dev-scripts/create-tables-and-fks.js)');
+        execSync('node dev-scripts/create-tables-and-fks.js', { stdio: 'inherit' });
+      } catch (e) {
+        console.error('⚠️ Falha ao executar script de criação de tabelas (continuando):', e.message || e);
+      }
+    }
+
     // Try to authenticate and sync DB, but don't prevent the server from starting if DB is down.
     await db.sequelize.authenticate();
     await db.sequelize.sync();
@@ -95,7 +108,7 @@ async function start() {
     await createAdminUserIfNotFound();
 
   } catch (err) {
-    console.error('❌ Erro ao ligar à base de dados:', err.message || err);
+    console.error('❌ Erro ao ligar à base de dados:', err.stack || err.message || err);
   }
 
   app.listen(PORT, () => {
