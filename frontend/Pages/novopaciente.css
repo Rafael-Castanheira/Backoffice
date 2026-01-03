@@ -1,0 +1,53 @@
+/* Styles for NovoPaciente page moved from inline CSS in NovoPaciente.jsx */
+.np-page { font-family: Inter, Roboto, Arial, sans-serif; color: #334155; min-height: 100vh; display:flex; flex-direction:column; width:100%; box-sizing:border-box; padding-top: 120px }
+.np-header { display:flex; justify-content:space-between; align-items:center; padding:18px 28px; background:transparent; border-bottom:0 }
+.np-logo { font-weight:700; color:#9b7b3a }
+.np-nav { display: none }
+.np-header { justify-content:center }
+.np-container { max-width:900px; margin:16px auto 60px; padding:0 40px; flex:1 }
+.np-title { color:#8b6b3a; font-size:48px; margin:6px 0 32px; font-weight:800; letter-spacing:0.5px; text-align:left }
+.np-form { display:block }
+.np-section { margin-bottom:48px }
+.np-section h2 { color:#8b6b3a; margin-bottom:16px; font-size:28px; font-weight:800 }
+.np-grid { display:grid; grid-template-columns: repeat(2, 1fr); gap:28px; justify-items:center }
+.np-grid label { display:flex; flex-direction:column; font-size:13px; align-items:center }
+.np-grid input, .np-grid textarea, .np-grid-2 textarea, .np-grid-3 textarea { padding:10px 12px; border:1px solid #efecec; border-radius:10px; resize:vertical; background: #fff }
+.np-grid input { width:240px }
+.np-grid textarea { width:240px; min-height:110px; border-radius:12px }
+.np-grid-2 textarea { min-height:140px }
+.np-grid-3 textarea { min-height:110px }
+.np-grid-2 { display:grid; grid-template-columns: repeat(2,1fr); gap:20px; justify-items:center }
+.np-grid-3 { display:grid; grid-template-columns: repeat(3,1fr); gap:20px; justify-items:center }
+.np-actions { display:flex; justify-content:center; align-items:center; margin:48px 0 }
+.np-save { background:#9b8a43; color:white; padding:12px 36px; border-radius:12px; border:none; box-shadow:0 26px 36px rgba(0,0,0,0.25); cursor:pointer; width:240px; font-size:18px }
+.np-error { color:#ef4444; margin-right:12px }
+.np-success { color:#16a34a; margin-right:12px }
+
+@media (max-width:900px){
+  .np-grid, .np-grid-2, .np-grid-3 { grid-template-columns:1fr }
+  .np-title { font-size:28px }
+}
+
+/* Visual tweaks to mimic the reference layout */
+.np-page { background: #fff }
+.np-logo { display:none }
+
+/* Back button next to title */
+.np-title-row { display:flex; align-items:center; margin-bottom:6px; gap:12px }
+.np-back {
+  background: transparent;
+  border: none;
+  color: #8b6b3a;
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.np-back:focus { outline: none }
+.np-back:hover { color: #7a5f32 }
+.np-title { margin: 0 }

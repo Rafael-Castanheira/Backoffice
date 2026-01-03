@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import './login.css';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -57,49 +58,47 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="container vh-100 d-flex align-items-center justify-content-center bg-light">
-      <div className="card shadow" style={{ maxWidth: 400, width: '100%' }}>
-        <div className="card-body p-4">
-          <h2 className="h5 mb-3">Entrar na sua conta</h2>
-          <form onSubmit={handleSubmit}>
-            <div className="mb-3">
-              <label className="form-label" htmlFor="email">Email</label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="form-control"
-                placeholder="seu@exemplo.com"
-                autoComplete="email"
-              />
-            </div>
-
-            <div className="mb-3">
-              <label className="form-label" htmlFor="password">Password</label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="form-control"
-                placeholder="••••••••"
-                autoComplete="current-password"
-              />
-            </div>
-
-            <button type="submit" className="btn btn-primary w-100" disabled={loading}>{loading ? 'Entrando...' : 'Entrar'}</button>
-
-            <div className="d-flex justify-content-between align-items-center mt-3 small text-muted">
-              <div>
-                Não tem conta? <span className="text-primary" style={{ cursor: 'pointer' }} onClick={() => navigate('/signup')}>Registar</span>
-              </div>
-              <div className="text-primary" style={{ cursor: 'pointer' }} onClick={() => navigate('/forgot-password')}>Esqueci a password</div>
-            </div>
-
-            {error && <div className="text-danger small mt-3">{error}</div>}
-          </form>
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-logo"> 
+          <img src="/logo%20clini.png" alt="CliniMofelos" className="login-image" />
+          <div className="logo-sub">CLINIMOFELOS</div>
         </div>
+
+        <h1 className="login-title">LOGIN</h1>
+
+        <form className="login-form" onSubmit={handleSubmit}>
+          <label className="login-label" htmlFor="email">Utilizador</label>
+          <input
+            id="email"
+            type="text"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="login-input"
+            placeholder="" 
+            autoComplete="username"
+          />
+
+          <label className="login-label" htmlFor="password">Senha</label>
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="login-input"
+            placeholder="" 
+            autoComplete="current-password"
+          />
+
+          <button type="submit" className="login-button" disabled={loading}>{loading ? 'Entrando...' : 'ENTRAR'}</button>
+
+          <div className="login-links">
+            <a onClick={() => navigate('/privacy')} className="small-link">política de privacidade</a>
+            <a onClick={() => navigate('/forgot-password')} className="small-link">esqueceu-se da palavra-passe?</a>
+          </div>
+
+          {error && <div className="login-error">{error}</div>}
+        </form>
       </div>
     </div>
   );

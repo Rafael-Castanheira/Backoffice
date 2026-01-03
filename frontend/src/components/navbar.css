@@ -1,0 +1,59 @@
+/* Global navbar styles to match requested design */
+/* Global navbar styles to match requested design */
+.site-navbar {
+  background: #f6f3db;
+  border-bottom: 0;
+  padding: 18px 0;
+  box-shadow: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1000;
+}
+.site-navbar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}
+.site-logo img { height: 68px; display:block }
+.site-links { display: flex; gap: 72px; align-items: center }
+.nav-item {
+  color: #9b7b3a;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 20px;
+  padding: 8px 4px;
+}
+.nav-item.active, .nav-item:hover {
+  text-decoration: underline;
+}
+
+/* Make logout button look like the other nav links (remove default button chrome) */
+.nav-logout {
+  background: transparent;
+  border: none;
+  color: #9b7b3a;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 20px;
+  text-decoration: none;
+  padding: 8px 4px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.nav-logout:hover,
+.nav-logout:focus {
+  text-decoration: underline;
+  outline: none;
+}
+
+/* Ensure body content is not hidden under fixed navbar: apply top padding to main app container if present */
+/* If your main content is wrapped in an element with class `.app-content`, adjust or add the following in your global CSS:
+.app-content { padding-top: 110px; } */

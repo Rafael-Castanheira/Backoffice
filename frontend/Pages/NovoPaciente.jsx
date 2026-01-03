@@ -1,28 +1,6 @@
 import React, { useState } from 'react';
-
-const pageCss = `
-.np-page { font-family: Inter, Roboto, Arial, sans-serif; color: #334155; min-height: 100vh; display:flex; flex-direction:column; width:100%; box-sizing:border-box }
-.np-header { display:flex; justify-content:space-between; align-items:center; padding:14px 28px; background:#f6f0e0; border-bottom:4px solid #cbd5e1 }
-.np-logo { font-weight:700; color:#9b7b3a }
-.np-container { max-width:1100px; margin:22px auto; padding:0 18px; flex:1 }
-.np-title { color:#8b6b3a; font-size:28px; margin:6px 0 18px }
-.np-form { display:block }
-.np-section { margin-bottom:26px }
-.np-section h2 { color:#8b6b3a; margin-bottom:12px }
-.np-grid { display:grid; grid-template-columns: repeat(2, 1fr); gap:12px }
-.np-grid label { display:flex; flex-direction:column; font-size:13px }
-.np-grid input, .np-grid textarea, .np-grid-2 textarea, .np-grid-3 textarea { padding:8px; border:1px solid #e6e6e6; border-radius:6px; resize:vertical }
-.np-grid-2 { display:grid; grid-template-columns: repeat(2,1fr); gap:16px }
-.np-grid-3 { display:grid; grid-template-columns: repeat(3,1fr); gap:16px }
-.np-actions { display:flex; justify-content:center; align-items:center; margin:20px 0 }
-.np-save { background:#9b7b3a; color:white; padding:10px 28px; border-radius:20px; border:none; box-shadow:0 6px 12px rgba(0,0,0,0.15); cursor:pointer }
-.np-error { color:#ef4444; margin-right:12px }
-.np-success { color:#16a34a; margin-right:12px }
-
-@media (max-width:900px){
-  .np-grid, .np-grid-2, .np-grid-3 { grid-template-columns:1fr }
-}
-`;
+import { useNavigate } from 'react-router-dom';
+import './novopaciente.css';
 
 const initialState = {
   nome: '',
@@ -58,6 +36,7 @@ export default function NovoPaciente() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -123,14 +102,17 @@ export default function NovoPaciente() {
 
   return (
     <div className="np-page">
-      <style>{pageCss}</style>
+      
       <header className="np-header" style={{boxSizing:'border-box'}}>
         <div className="np-logo">Clínica</div>
         <nav className="np-nav">Marcações · Médicos · Pacientes · Sair</nav>
       </header>
 
       <main className="np-container">
-        <h1 className="np-title">&lt; Novo Paciente</h1>
+        <div className="np-title-row">
+          <button type="button" className="np-back" aria-label="Voltar" onClick={() => navigate(-1)}>&lt;</button>
+          <h1 className="np-title">Novo Paciente</h1>
+        </div>
 
         <form className="np-form" onSubmit={handleSubmit}>
           <section className="np-section">
@@ -252,7 +234,7 @@ export default function NovoPaciente() {
           <div className="np-actions">
             {error && <div className="np-error">{error}</div>}
             {success && <div className="np-success">{success}</div>}
-            <button className="btn btn-success" type="submit" disabled={loading}>{loading ? 'Guardando...' : 'Guardar'}</button>
+            <button className="np-save" type="submit" disabled={loading}>{loading ? 'Guardando...' : 'Guardar'}</button>
           </div>
         </form>
       </main>
