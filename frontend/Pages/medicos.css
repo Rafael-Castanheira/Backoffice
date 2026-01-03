@@ -1,0 +1,87 @@
+.medicos-page {
+  position: relative;
+  padding: 120px 24px 80px; /* leave space for fixed navbar */
+  min-height: calc(100vh - 120px);
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.medicos-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0.08;
+}
+.medicos-watermark img { width: 800px; max-width: 80%; }
+
+.medicos-inner {
+  max-width: 1260px;
+  margin: 0 auto;
+}
+
+/* keep title minimal; main navigation indicates page */
+.medicos-title {
+  text-align: center;
+  color: #9b7b3a;
+  font-size: 26px;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.medicos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 320px);
+  gap: 54px;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.medico-card {
+  width: 320px;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.medico-photo {
+  background: #cfc29a;
+  height: 360px;
+  position: relative;
+  display: block;
+  overflow: hidden;
+}
+.medico-photo img { width: 100%; height: 100%; object-fit: cover; display:block }
+.photo-tag {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  color: rgba(255,255,255,0.95);
+  font-size: 12px;
+  opacity: 0.95;
+}
+
+.medico-desc {
+  background: #f4efdf;
+  padding: 18px 20px;
+  color: #222;
+  min-height: 150px;
+  flex: 1;
+}
+.medico-name {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #222;
+  font-weight: 700;
+}
+.medico-bio { font-size: 13px; line-height: 1.5; color: #333 }
+
+@media (max-width: 980px) {
+  .medicos-grid { grid-template-columns: repeat(2, 1fr); grid-template-columns: repeat(2, 320px); justify-content:center }
+}
+@media (max-width: 640px) {
+  .medicos-grid { grid-template-columns: 1fr; }
+  .medicos-watermark img { width: 500px }
+}
