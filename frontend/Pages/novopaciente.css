@@ -1,5 +1,5 @@
 /* Styles for NovoPaciente page moved from inline CSS in NovoPaciente.jsx */
-.np-page { font-family: Inter, Roboto, Arial, sans-serif; color: #334155; min-height: 100vh; display:flex; flex-direction:column; width:100%; box-sizing:border-box; padding-top: 120px }
+.np-page { font-family: inherit; color: #334155; min-height: 100vh; display:flex; flex-direction:column; width:100%; box-sizing:border-box; padding-top: 120px }
 .np-header { display:flex; justify-content:space-between; align-items:center; padding:18px 28px; background:transparent; border-bottom:0 }
 .np-logo { font-weight:700; color:#9b7b3a }
 .np-nav { display: none }

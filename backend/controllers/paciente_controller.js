@@ -30,35 +30,72 @@ exports.create = async (req, res) => {
   try {
     const created = await model.create(req.body, { transaction: t });
 
-    // If an email was provided, create or link a user account and send credentials
-    if (req.body.email) {
-      const email = req.body.email;
+    const pacienteNome = req.body.nome || null;
 
-      // If a user already exists with that email, link the patient to that user
-      let user = await db.utilizadores.findOne({ where: { email }, transaction: t });
+    // Ensure a 'Paciente' user type exists
+    const [tipoUser] = await db.tipouser.findOrCreate({
+      where: { descricao_pt: 'Paciente' },
+      defaults: { id_tipo_user: 2, descricao_pt: 'Paciente', descricao_en: 'Patient' },
+      transaction: t,
+    });
+
+    const tipoPacienteId = tipoUser.id_tipo_user || 2;
+
+    const ensureUserLinked = async ({ email, password }) => {
+      let user = null;
+
+      if (email) {
+        user = await db.utilizadores.findOne({ where: { email }, transaction: t });
+      }
 
       if (!user) {
-        // Ensure a 'Paciente' user type exists
-        const [tipoUser] = await db.tipouser.findOrCreate({
-          where: { descricao_pt: 'Paciente' },
-          defaults: { id_tipo_user: 2, descricao_pt: 'Paciente', descricao_en: 'Patient' },
-          transaction: t
-        });
+        user = await db.utilizadores.findOne({ where: { numero_utente: created.numero_utente }, transaction: t });
+      }
 
-        // Generate a short, friendly password (hex, 8 chars)
-        const password = require('crypto').randomBytes(4).toString('hex');
-
+      if (!user) {
         const maxId = (await db.utilizadores.max('id_user', { transaction: t })) || 0;
         const id_user = maxId + 1;
 
-        user = await db.utilizadores.create({
-          id_user,
-          id_tipo_user: tipoUser.id_tipo_user || 2,
-          numero_utente: created.numero_utente,
-          nome: req.body.nome || created.nome || null,
-          email,
-          password_hash: password
-        }, { transaction: t });
+        user = await db.utilizadores.create(
+          {
+            id_user,
+            id_tipo_user: tipoPacienteId,
+            numero_utente: created.numero_utente,
+            nome: pacienteNome,
+            email: email || null,
+            password_hash: password || null,
+            data_criacao: new Date(),
+          },
+          { transaction: t }
+        );
+      } else {
+        // Ensure linkage + basic fields
+        const updates = {};
+        if (!user.numero_utente) updates.numero_utente = created.numero_utente;
+        if (!user.id_tipo_user) updates.id_tipo_user = tipoPacienteId;
+        if (!user.nome && pacienteNome) updates.nome = pacienteNome;
+        if (!user.data_criacao) updates.data_criacao = new Date();
+        if (Object.keys(updates).length) {
+          await user.update(updates, { transaction: t });
+        }
+      }
+
+      if (user && user.id_user) {
+        created.id_user = user.id_user;
+        await created.save({ transaction: t });
+      }
+
+      return user;
+    };
+
+    // If an email was provided, create/link a user account and send credentials
+    if (req.body.email) {
+      const email = req.body.email;
+
+      // Generate a short, friendly password (hex, 8 chars)
+      const password = require('crypto').randomBytes(4).toString('hex');
+
+      const user = await ensureUserLinked({ email, password });
 
         // Send credentials via email (if SMTP configured). In dev, we log email and also return the password in the response for convenience.
         try {
@@ -69,28 +106,20 @@ exports.create = async (req, res) => {
           console.error('Erro ao enviar email de boas-vindas:', mailErr.message || mailErr);
         }
 
-        // Attach new user id to paciente
-        if (user && user.id_user) {
-          created.id_user = user.id_user;
-          await created.save({ transaction: t });
-        }
-
-        await t.commit();
-
-        // If mailer not configured and in development, return the generated password so devs can verify
-        if (!isConfigured() && (!process.env.NODE_ENV || process.env.NODE_ENV === 'development')) {
-          return res.status(201).json({ paciente: created, temp_password: password });
-        }
-      } else {
-        // user exists — link patient to existing user
-        created.id_user = user.id_user;
-        await created.save({ transaction: t });
-        await t.commit();
-      }
-    } else {
       await t.commit();
+
+      // If mailer not configured and in development, return the generated password so devs can verify
+      if (!isConfigured() && (!process.env.NODE_ENV || process.env.NODE_ENV === 'development')) {
+        return res.status(201).json({ paciente: created, temp_password: password });
+      }
+
+      return res.status(201).json(created);
     }
 
+    // No email: still create/link a user so the patient appears in the list
+    await ensureUserLinked({ email: null, password: null });
+
+    await t.commit();
     return res.status(201).json(created);
   } catch (err) {
     await t.rollback();

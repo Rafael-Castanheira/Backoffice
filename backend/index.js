@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const db = require('./models');
+const Sequelize = db.Sequelize;
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -25,7 +26,11 @@ app.use('/statusconsulta', require('./routes/statusconsulta_route'));
 app.use('/notificacao', require('./routes/notificacao_route'));
 app.use('/horariomedico', require('./routes/horariomedico_route'));
 app.use('/historicomedico', require('./routes/historicomedico_route'));
+app.use('/historicodentario', require('./routes/historicodentario_route'));
+app.use('/habitosestilovida', require('./routes/habitosestilovida_route'));
 app.use('/tipo_notificacao', require('./routes/tipo_notificacao_route'));
+app.use('/genero', require('./routes/genero_route'));
+app.use('/estadocivil', require('./routes/estadocivil_route'));
 app.use('/tipoparentesco', require('./routes/tipoparentesco_route'));
 app.use('/tipotratamento', require('./routes/tipotratamento_route'));
 app.use('/tipouser', require('./routes/tipouser_route'));
@@ -70,6 +75,7 @@ async function createAdminUserIfNotFound() {
         email: 'admin@local',
         password_hash: 'adminpass', // Password shortened to fit schema (STRING(12))
         id_tipo_user: adminUserType.id_tipo_user,
+        data_criacao: new Date(),
       },
     });
 
@@ -103,6 +109,30 @@ async function start() {
     await db.sequelize.authenticate();
     await db.sequelize.sync();
     console.log('✅ Base de dados ligada com sucesso.');
+
+    // Ensure schema has required columns (safe in dev / existing DBs)
+    try {
+      const qi = db.sequelize.getQueryInterface();
+      const cols = await qi.describeTable('utilizadores');
+      if (!cols.data_criacao) {
+        await qi.addColumn('utilizadores', 'data_criacao', {
+          type: Sequelize.DATEONLY,
+          allowNull: true,
+        });
+        console.log('🔧 Coluna utilizadores.data_criacao adicionada.');
+      }
+
+      const hdCols = await qi.describeTable('historicodentario');
+      if (!hdCols.historico_tratamentos) {
+        await qi.addColumn('historicodentario', 'historico_tratamentos', {
+          type: Sequelize.TEXT,
+          allowNull: true,
+        });
+        console.log('🔧 Coluna historicodentario.historico_tratamentos adicionada.');
+      }
+    } catch (e) {
+      console.error('⚠️ Falha ao garantir coluna utilizadores.data_criacao (continuando):', e.message || e);
+    }
 
     // Create the default admin user if it doesn't exist
     await createAdminUserIfNotFound();

@@ -62,7 +62,7 @@ const LoginPage = () => {
       <div className="login-card">
         <div className="login-logo"> 
           <img src="/logo%20clini.png" alt="CliniMofelos" className="login-image" />
-          <div className="logo-sub">CLINIMOFELOS</div>
+          <div className="logo-sub">CLINIMOLELOS</div>
         </div>
 
         <h1 className="login-title">LOGIN</h1>

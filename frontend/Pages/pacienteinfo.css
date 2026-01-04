@@ -1,0 +1,161 @@
+.pi-page {
+  padding: 120px 24px 80px;
+  min-height: calc(100vh - 120px);
+  background: #fff;
+}
+
+.pi-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.pi-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: 16px;
+  margin: 18px 0 18px;
+}
+
+.pi-back {
+  background: transparent;
+  border: none;
+  color: #8b6b3a;
+  font-size: 52px;
+  font-weight: 800;
+  padding: 0;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pi-back:hover {
+  color: #7a5f32;
+}
+
+.pi-title {
+  margin: 0;
+  color: #8b6b3a;
+  font-size: 54px;
+  font-weight: 900;
+  text-align: left;
+}
+
+.pi-utente {
+  color: #8b6b3a;
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.pi-error {
+  background: #fff3f3;
+  border: 1px solid #f1bcbc;
+  color: #8f2b2b;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin: 10px 0 18px;
+}
+
+.pi-loading {
+  color: #6c5a2e;
+  font-weight: 700;
+  padding: 12px 0;
+}
+
+.pi-topgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+}
+
+.pi-section {
+  margin-top: 18px;
+}
+
+.pi-section h2 {
+  margin: 0 0 14px;
+  color: #8b6b3a;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.pi-formgrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 26px;
+}
+
+.pi-formgrid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pi-formgrid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pi-formgrid.three.compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pi-formgrid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  color: #111;
+}
+
+.pi-formgrid input,
+.pi-formgrid textarea {
+  border: 1px solid #e9e9e9;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #fff;
+  color: #666;
+  font-size: 11px;
+  outline: none;
+}
+
+.pi-formgrid textarea {
+  min-height: 95px;
+  resize: none;
+}
+
+.pi-actions {
+  margin-top: 46px;
+  display: flex;
+  justify-content: center;
+  gap: 140px;
+}
+
+.pi-btn {
+  background: #a79a57;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 14px 70px;
+  font-size: 18px;
+  font-weight: 700;
+  box-shadow: 0 12px 18px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+
+.pi-btn:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 980px) {
+  .pi-topgrid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .pi-formgrid.three {
+    grid-template-columns: 1fr;
+  }
+  .pi-actions {
+    gap: 18px;
+  }
+  .pi-btn {
+    width: 100%;
+    max-width: 360px;
+  }
+}

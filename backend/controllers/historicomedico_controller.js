@@ -1,4 +1,5 @@
 const db = require('../models');
+const { getPkField, todayDateOnly, uuid } = require('./_clinical_controller_utils');
 
 const model = db.historicomedico;
 
@@ -23,9 +24,34 @@ exports.findOne = async (req, res) => {
   }
 };
 
+exports.findByPaciente = async (req, res) => {
+  try {
+    const utenteId = req.params.utenteId;
+    const items = await model.findAll({
+      where: { numero_utente: String(utenteId) },
+      order: [
+        ['data_registo', 'DESC'],
+        ['id_historico', 'DESC'],
+      ],
+    });
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 exports.create = async (req, res) => {
   try {
-    const created = await model.create(req.body);
+    const pk = getPkField(model, 'id_historico');
+    const body = { ...req.body };
+    if (body[pk] == null || body[pk] === '') {
+      body[pk] = uuid();
+    }
+    if (!body.data_registo) {
+      body.data_registo = todayDateOnly();
+    }
+
+    const created = await model.create(body);
     res.status(201).json(created);
   } catch (err) {
     res.status(400).json({ message: err.message });

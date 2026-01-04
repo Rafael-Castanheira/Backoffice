@@ -13,6 +13,7 @@ const { verifyToken } = require('../middleware/authJwt');
 router.use(verifyToken);
 router.get('/', controller.findAll);
 router.post('/', controller.create);
+router.get('/paciente/:utenteId', controller.findByPaciente);
 router.get('/:id', controller.findOne);
 router.put('/:id', controller.update);
 router.delete('/:id', controller.delete);

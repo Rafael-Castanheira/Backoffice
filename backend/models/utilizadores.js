@@ -39,6 +39,10 @@ module.exports = function(sequelize, DataTypes) {
     password_hash: {
       type: DataTypes.STRING(12),
       allowNull: true
+    },
+    data_criacao: {
+      type: DataTypes.DATEONLY,
+      allowNull: true
     }
   }, {
     sequelize,

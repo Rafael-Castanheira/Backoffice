@@ -8,7 +8,10 @@
     "dev": "nodemon index.js",
     "start": "node index.js",
     "create-admin": "node dev-scripts/create-admin-user.js",
-    "create-db": "node dev-scripts/create-tables-and-fks.js"
+    "create-db": "node dev-scripts/create-tables-and-fks.js",
+    "backfill-user-dates": "node dev-scripts/backfill-user-created-date.js",
+    "backfill-user-names": "node dev-scripts/backfill-user-names.js",
+    "backfill-user-names-apply": "node dev-scripts/backfill-user-names.js --apply"
   },
   "keywords": [],
   "author": "",

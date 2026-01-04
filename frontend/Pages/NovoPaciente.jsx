@@ -65,6 +65,7 @@ export default function NovoPaciente() {
 
       const payload = {
         numero_utente: form.nif ? String(form.nif).slice(0,9) : generateTempUtente(), // ensure max 9 chars
+        nome: form.nome || null,
         nif: form.nif || null,
         contacto_telefonico: form.contacto || null,
         morada: form.morada || null,
@@ -72,6 +73,17 @@ export default function NovoPaciente() {
         id_genero: form.genero ? parseInt(form.genero) : null,
         id_estado_civil: form.estado_civil ? parseInt(form.estado_civil) : null,
         email: form.email || null
+      };
+
+      const token = localStorage.getItem('token');
+      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const parseBooleanPt = (val) => {
+        const v = String(val || '').trim().toLowerCase();
+        if (!v) return null;
+        if (['sim', 's', '1', 'true', 'yes'].includes(v)) return true;
+        if (['nao', 'não', 'n', '0', 'false', 'no'].includes(v)) return false;
+        return null;
       };
 
       const res = await fetch('/paciente', {
@@ -86,10 +98,63 @@ export default function NovoPaciente() {
       }
 
       const data = await res.json().catch(() => ({}));
+
+      const numeroUtenteCriado = data?.numero_utente || payload.numero_utente;
+
+      // Guardar dados clínicos (best-effort). Se falhar, não impede a criação do paciente.
+      const habitosPayload = {
+        numero_utente: numeroUtenteCriado,
+        attribuhigiene_oralhigiene: form.higiene_oral || null,
+        atividades_desportivas: form.atividades_desportivas || null,
+        habitos_alimentares: form.habitos_alimentares || null,
+        consumo_substancias: form.consumo_substancias || null,
+        bruxismo: parseBooleanPt(form.bruxismo)
+      };
+
+      const histDentPayload = {
+        numero_utente: numeroUtenteCriado,
+        motivo_consulta_inicial: form.motivo_consulta || null,
+        historico_tratamentos: form.historico_tratamento || null,
+        condicao_dent_preexists: form.condicoes_preexistentes || null,
+        experiencia_anestesias: form.experiencias_anestesicos || null,
+        historico_dor_sensibilidade: form.historico_sensibilidade || null
+      };
+
+      const histMedPayload = {
+        numero_utente: numeroUtenteCriado,
+        alergias: form.alergias || null,
+        medicamentos: form.medicamentos || null,
+        gravidez: parseBooleanPt(form.gravidez),
+        internacoes: form.internacoes || null,
+        historico_cirurgico: form.historico_cirurgias || null
+      };
+
+      const postClinical = async (url, body) => {
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
+          body: JSON.stringify(body)
+        });
+        if (!r.ok) {
+          const errData = await r.json().catch(() => ({}));
+          throw new Error(errData.message || `Erro ao guardar ${url} (${r.status})`);
+        }
+      };
+
+      let clinicalWarning = '';
+      try {
+        await postClinical('/habitosestilovida', habitosPayload);
+        await postClinical('/historicodentario', histDentPayload);
+        await postClinical('/historicomedico', histMedPayload);
+      } catch (e) {
+        clinicalWarning = ` (Aviso: não foi possível guardar todos os dados clínicos: ${e.message})`;
+      }
       if (data.temp_password) {
-        setSuccess(`Paciente guardado. Credenciais provisórias enviadas por email (senha: ${data.temp_password}).`);
+        setSuccess(
+          `Paciente guardado. Credenciais provisórias enviadas por email (senha: ${data.temp_password}).${clinicalWarning}`
+        );
       } else {
-        setSuccess('Paciente guardado com sucesso.');
+        setSuccess(`Paciente guardado com sucesso.${clinicalWarning}`);
       }
 
       setForm(initialState);

@@ -1,12 +1,27 @@
 const db = require('../models');
+const { getPkField, nextIntPk, todayDateOnly } = require('./_clinical_controller_utils');
 
 const model = db.habitosestilovida;
-
-const getPk = (m) => (m && m.primaryKeyAttributes && m.primaryKeyAttributes[0]) || 'id';
 
 exports.findAll = async (req, res) => {
     try {
         const items = await model.findAll();
+        res.json(items);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+exports.findByPaciente = async (req, res) => {
+    try {
+        const utenteId = req.params.utenteId;
+        const items = await model.findAll({
+            where: { numero_utente: String(utenteId) },
+            order: [
+                ['data_registo', 'DESC'],
+                ['id_habito', 'DESC'],
+            ],
+        });
         res.json(items);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -25,7 +40,17 @@ exports.findOne = async (req, res) => {
 
 exports.create = async (req, res) => {
     try {
-        const created = await model.create(req.body);
+        const pk = getPkField(model, 'id_habito');
+        const body = { ...req.body };
+
+        if (body[pk] == null) {
+            body[pk] = await nextIntPk(model, pk);
+        }
+        if (!body.data_registo) {
+            body.data_registo = todayDateOnly();
+        }
+
+        const created = await model.create(body);
         res.status(201).json(created);
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -34,7 +59,7 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
     try {
-        const pk = getPk(model);
+        const pk = getPkField(model, 'id_habito');
         const where = {};
         where[pk] = req.params.id;
         const [num] = await model.update(req.body, { where });
@@ -48,7 +73,7 @@ exports.update = async (req, res) => {
 
 exports.delete = async (req, res) => {
     try {
-        const pk = getPk(model);
+        const pk = getPkField(model, 'id_habito');
         const where = {};
         where[pk] = req.params.id;
         const num = await model.destroy({ where });
@@ -56,37 +81,5 @@ exports.delete = async (req, res) => {
         res.json({ message: 'Deleted' });
     } catch (err) {
         res.status(500).json({ message: err.message });
-    }
-};
-    }
-};
-
-// 4. Atualizar
-exports.update = async (req, res) => {
-    try {
-        const id = req.params.id;
-        const [num] = await models.HABITOSESTILOVIDA.update(req.body, {
-            where: { ID_HABITO: id }
-        });
-
-        if (num == 1) res.send({ message: "Atualizado com sucesso." });
-        else res.send({ message: "Não foi possível atualizar." });
-    } catch (error) {
-        res.status(500).send({ message: error.message });
-    }
-};
-
-// 5. Apagar
-exports.delete = async (req, res) => {
-    try {
-        const id = req.params.id;
-        const num = await models.HABITOSESTILOVIDA.destroy({
-            where: { ID_HABITO: id }
-        });
-
-        if (num == 1) res.send({ message: "Apagado com sucesso!" });
-        else res.send({ message: "Não encontrado." });
-    } catch (error) {
-        res.status(500).send({ message: error.message });
     }
 };

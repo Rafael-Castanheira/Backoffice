@@ -22,6 +22,10 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.TEXT,
       allowNull: true
     },
+    historico_tratamentos: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
     experiencia_anestesias: {
       type: DataTypes.TEXT,
       allowNull: true

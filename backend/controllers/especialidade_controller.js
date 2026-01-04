@@ -58,30 +58,3 @@ exports.delete = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
-        const [num] = await models.ESPECIALIDADE.update(req.body, {
-            where: { ID_ESPECIALIDADE: id }
-        });
-
-        if (num == 1) res.send({ message: "Especialidade atualizada com sucesso." });
-        else res.send({ message: `Não foi possível atualizar o id=${id}.` });
-
-    } catch (error) {
-        res.status(500).send({ message: "Erro ao atualizar: " + error.message });
-    }
-};
-
-// 5. Apagar
-exports.delete = async (req, res) => {
-    try {
-        const id = req.params.id;
-        const num = await models.ESPECIALIDADE.destroy({
-            where: { ID_ESPECIALIDADE: id }
-        });
-
-        if (num == 1) res.send({ message: "Especialidade apagada com sucesso!" });
-        else res.send({ message: "Especialidade não encontrada." });
-
-    } catch (error) {
-        res.status(500).send({ message: "Erro ao apagar: " + error.message });
-    }
-};
