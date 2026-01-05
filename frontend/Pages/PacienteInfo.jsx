@@ -18,6 +18,12 @@ function boolPt(v) {
   return '';
 }
 
+function showValue(v) {
+  if (v === null || v === undefined) return '-';
+  const s = String(v);
+  return s.trim() ? s : '-';
+}
+
 async function fetchJson(url) {
   const token = localStorage.getItem('token');
   let res;
@@ -62,6 +68,8 @@ export default function PacienteInfo() {
   const [habitos, setHabitos] = useState(null);
   const [histDent, setHistDent] = useState(null);
   const [histMed, setHistMed] = useState(null);
+  const [generos, setGeneros] = useState([]);
+  const [estadosCivis, setEstadosCivis] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,13 +82,18 @@ export default function PacienteInfo() {
         const pacientePromise = fetchJson(`/paciente/${encodeURIComponent(utenteId)}`);
         const utilizadoresPromise = fetchJson('/utilizadores');
 
+        const generosPromise = fetchJson('/genero').catch(() => []);
+        const estadosCivisPromise = fetchJson('/estadocivil').catch(() => []);
+
         const habitosPromise = fetchJson(`/habitosestilovida/paciente/${encodeURIComponent(utenteId)}`).catch(() => []);
         const histDentPromise = fetchJson(`/historicodentario/paciente/${encodeURIComponent(utenteId)}`).catch(() => []);
         const histMedPromise = fetchJson(`/historicomedico/paciente/${encodeURIComponent(utenteId)}`).catch(() => []);
 
-        const [pacienteRow, utilizadoresRows, habitosRows, histDentRows, histMedRows] = await Promise.all([
+        const [pacienteRow, utilizadoresRows, generosRows, estadosCivisRows, habitosRows, histDentRows, histMedRows] = await Promise.all([
           pacientePromise,
           utilizadoresPromise,
+          generosPromise,
+          estadosCivisPromise,
           habitosPromise,
           histDentPromise,
           histMedPromise,
@@ -93,6 +106,8 @@ export default function PacienteInfo() {
         if (!cancelled) {
           setPaciente(pacienteRow || null);
           setUser(u || null);
+          setGeneros(Array.isArray(generosRows) ? generosRows : []);
+          setEstadosCivis(Array.isArray(estadosCivisRows) ? estadosCivisRows : []);
           setHabitos(pickLatest(habitosRows, 'data_registo'));
           setHistDent(pickLatest(histDentRows, 'data_registo'));
           setHistMed(pickLatest(histMedRows, 'data_registo'));
@@ -112,14 +127,33 @@ export default function PacienteInfo() {
 
   const headerName = useMemo(() => user?.nome || 'Paciente', [user]);
 
+  const generoDesc = useMemo(() => {
+    const id = paciente?.id_genero;
+    if (id == null || id === '') return '';
+    const row = Array.isArray(generos) ? generos.find((g) => String(g?.id_genero) === String(id)) : null;
+    return row?.descricao_pt || String(id);
+  }, [paciente, generos]);
+
+  const estadoCivilDesc = useMemo(() => {
+    const id = paciente?.id_estado_civil;
+    if (id == null || id === '') return '';
+    const row = Array.isArray(estadosCivis)
+      ? estadosCivis.find((g) => String(g?.id_estado_civil) === String(id))
+      : null;
+    return row?.descricao_pt || String(id);
+  }, [paciente, estadosCivis]);
+
   const dadosGerais = {
+    numeroUtente: paciente?.numero_utente ?? utenteId,
     nome: user?.nome || '',
     morada: paciente?.morada || '',
+    codigoPostal: paciente?.codigo_postal || '',
     nif: paciente?.nif || '',
     contacto: paciente?.contacto_telefonico || '',
-    genero: paciente?.id_genero ?? '',
+    profissao: paciente?.profissao || '',
+    genero: generoDesc,
     dataNascimento: paciente?.data_nascimento ? formatDatePt(paciente.data_nascimento) : '',
-    estadoCivil: paciente?.id_estado_civil ?? '',
+    estadoCivil: estadoCivilDesc,
     email: user?.email || '',
   };
 
@@ -128,7 +162,7 @@ export default function PacienteInfo() {
     atividades: habitos?.atividades_desportivas || '',
     habitosAlimentares: habitos?.habitos_alimentares || '',
     consumoSubstancias: habitos?.consumo_substancias || '',
-    bruxismo: boolPt(habitos?.bruxismo),
+    bruxismo: boolPt(habitos?.bruxismo) || '',
   };
 
   const historicoDentario = {
@@ -142,7 +176,7 @@ export default function PacienteInfo() {
   const condicoesSaude = {
     alergias: histMed?.alergias || '',
     medicamentos: histMed?.medicamentos || '',
-    gravidez: boolPt(histMed?.gravidez),
+    gravidez: boolPt(histMed?.gravidez) || '',
     internacoes: histMed?.internacoes || '',
     cirurgias: histMed?.historico_cirurgico || '',
   };
@@ -155,7 +189,7 @@ export default function PacienteInfo() {
             &lt;
           </button>
           <h1 className="pi-title">{headerName}</h1>
-          <div className="pi-utente">NIF: {utenteId}</div>
+          <div className="pi-utente">NIF: {paciente?.nif || utenteId}</div>
         </div>
 
         {error && <div className="pi-error">{error}</div>}
@@ -168,36 +202,48 @@ export default function PacienteInfo() {
                 <h2>Dados Gerais</h2>
                 <div className="pi-formgrid">
                   <label>
+                    Nº Utente
+                    <input value={showValue(dadosGerais.numeroUtente)} readOnly />
+                  </label>
+                  <label>
                     Nome Completo
-                    <input value={dadosGerais.nome} readOnly />
+                    <input value={showValue(dadosGerais.nome)} readOnly />
                   </label>
                   <label>
                     Morada
-                    <input value={dadosGerais.morada} readOnly />
+                    <input value={showValue(dadosGerais.morada)} readOnly />
+                  </label>
+                  <label>
+                    Código Postal
+                    <input value={showValue(dadosGerais.codigoPostal)} readOnly />
                   </label>
                   <label>
                     NIF
-                    <input value={dadosGerais.nif} readOnly />
+                    <input value={showValue(dadosGerais.nif)} readOnly />
                   </label>
                   <label>
                     Contacto Telefónico
-                    <input value={dadosGerais.contacto} readOnly />
+                    <input value={showValue(dadosGerais.contacto)} readOnly />
+                  </label>
+                  <label>
+                    Profissão
+                    <input value={showValue(dadosGerais.profissao)} readOnly />
                   </label>
                   <label>
                     Género
-                    <input value={dadosGerais.genero} readOnly />
+                    <input value={showValue(dadosGerais.genero)} readOnly />
                   </label>
                   <label>
                     Data de Nascimento
-                    <input value={dadosGerais.dataNascimento} readOnly />
+                    <input value={showValue(dadosGerais.dataNascimento)} readOnly />
                   </label>
                   <label>
                     Estado civil
-                    <input value={dadosGerais.estadoCivil} readOnly />
+                    <input value={showValue(dadosGerais.estadoCivil)} readOnly />
                   </label>
                   <label>
                     Email
-                    <input value={dadosGerais.email} readOnly />
+                    <input value={showValue(dadosGerais.email)} readOnly />
                   </label>
                 </div>
               </section>
@@ -207,23 +253,23 @@ export default function PacienteInfo() {
                 <div className="pi-formgrid two">
                   <label>
                     Higiene oral:
-                    <textarea value={habitosVida.higieneOral} readOnly />
+                    <textarea value={showValue(habitosVida.higieneOral)} readOnly />
                   </label>
                   <label>
                     Atividades desportivas:
-                    <textarea value={habitosVida.atividades} readOnly />
+                    <textarea value={showValue(habitosVida.atividades)} readOnly />
                   </label>
                   <label>
                     Hábitos alimentares:
-                    <textarea value={habitosVida.habitosAlimentares} readOnly />
+                    <textarea value={showValue(habitosVida.habitosAlimentares)} readOnly />
                   </label>
                   <label>
                     Consumo de substâncias:
-                    <input value={habitosVida.consumoSubstancias} readOnly />
+                    <input value={showValue(habitosVida.consumoSubstancias)} readOnly />
                   </label>
                   <label>
                     Bruxismo:
-                    <input value={habitosVida.bruxismo} readOnly />
+                    <input value={showValue(habitosVida.bruxismo)} readOnly />
                   </label>
                 </div>
               </section>
@@ -234,23 +280,23 @@ export default function PacienteInfo() {
               <div className="pi-formgrid three">
                 <label>
                   Motivo da consulta:
-                  <textarea value={historicoDentario.motivo} readOnly />
+                  <textarea value={showValue(historicoDentario.motivo)} readOnly />
                 </label>
                 <label>
                   Histórico de tratamentos:
-                  <textarea value={historicoDentario.historicoTrat} readOnly />
+                  <textarea value={showValue(historicoDentario.historicoTrat)} readOnly />
                 </label>
                 <label>
                   Condições preexistentes:
-                  <textarea value={historicoDentario.condicoes} readOnly />
+                  <textarea value={showValue(historicoDentario.condicoes)} readOnly />
                 </label>
                 <label>
                   Experiência com anestesias:
-                  <textarea value={historicoDentario.anestesias} readOnly />
+                  <textarea value={showValue(historicoDentario.anestesias)} readOnly />
                 </label>
                 <label>
                   Histórico de sensibilidade:
-                  <textarea value={historicoDentario.sensibilidade} readOnly />
+                  <textarea value={showValue(historicoDentario.sensibilidade)} readOnly />
                 </label>
               </div>
             </section>
@@ -260,23 +306,23 @@ export default function PacienteInfo() {
               <div className="pi-formgrid three compact">
                 <label>
                   Alergias:
-                  <input value={condicoesSaude.alergias} readOnly />
+                  <input value={showValue(condicoesSaude.alergias)} readOnly />
                 </label>
                 <label>
                   Medicamentos:
-                  <input value={condicoesSaude.medicamentos} readOnly />
+                  <input value={showValue(condicoesSaude.medicamentos)} readOnly />
                 </label>
                 <label>
                   Gravidez
-                  <input value={condicoesSaude.gravidez} readOnly />
+                  <input value={showValue(condicoesSaude.gravidez)} readOnly />
                 </label>
                 <label>
                   Internações:
-                  <input value={condicoesSaude.internacoes} readOnly />
+                  <input value={showValue(condicoesSaude.internacoes)} readOnly />
                 </label>
                 <label>
                   Histórico de cirurgias:
-                  <input value={condicoesSaude.cirurgias} readOnly />
+                  <input value={showValue(condicoesSaude.cirurgias)} readOnly />
                 </label>
               </div>
             </section>

@@ -4,6 +4,7 @@ import NovoPaciente from '../Pages/NovoPaciente';
 import Medicos from '../Pages/Medicos';
 import Pacientes from '../Pages/Pacientes';
 import PacienteInfo from '../Pages/PacienteInfo';
+import PrivacyPage from '../Pages/PrivacyPage';
 import Navbar from './components/Navbar';
 import './App.css';
 import { useLocation } from 'react-router-dom';
@@ -12,10 +13,11 @@ function App() {
   const location = useLocation();
   return (
     <>
-      {location.pathname !== '/login' && <Navbar />}
+      {location.pathname !== '/login' && location.pathname !== '/privacy' && <Navbar />}
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/paciente/novo" element={<NovoPaciente />} />
         <Route path="/medicos" element={<Medicos />} />
         <Route path="/pacientes" element={<Pacientes />} />

@@ -6,7 +6,8 @@ function getPkField(model, fallback = 'id') {
 
 async function nextIntPk(model, pkField) {
   const max = await model.max(pkField);
-  const next = (Number.isFinite(max) ? max : 0) + 1;
+  const maxNumber = typeof max === 'number' ? max : Number(max);
+  const next = (Number.isFinite(maxNumber) ? maxNumber : 0) + 1;
   return next;
 }
 

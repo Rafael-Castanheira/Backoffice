@@ -28,7 +28,31 @@ const { sendMail, isConfigured } = require('../utils/mailer');
 exports.create = async (req, res) => {
   const t = await db.sequelize.transaction();
   try {
-    const created = await model.create(req.body, { transaction: t });
+    const body = { ...req.body };
+
+    // If a responsible patient was provided, ensure it exists.
+    // Users often type the NIF; our PK is numero_utente, so we try both.
+    if (body.pac_numero_utente != null && String(body.pac_numero_utente).trim() !== '') {
+      const raw = String(body.pac_numero_utente).trim();
+      let responsavel = await model.findByPk(raw, { transaction: t });
+      if (!responsavel) {
+        responsavel = await model.findOne({ where: { nif: raw }, transaction: t });
+      }
+
+      if (responsavel && responsavel.numero_utente) {
+        body.pac_numero_utente = responsavel.numero_utente;
+      } else {
+        // Don't block patient creation — just drop the invalid reference.
+        body.pac_numero_utente = null;
+      }
+    }
+
+    // Avoid self-referencing FK
+    if (body.pac_numero_utente && body.numero_utente && String(body.pac_numero_utente) === String(body.numero_utente)) {
+      body.pac_numero_utente = null;
+    }
+
+    const created = await model.create(body, { transaction: t });
 
     const pacienteNome = req.body.nome || null;
 

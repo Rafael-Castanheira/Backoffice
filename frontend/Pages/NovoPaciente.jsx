@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './novopaciente.css';
 
@@ -11,6 +11,8 @@ const initialState = {
   data_nascimento: '',
   estado_civil: '',
   email: '',
+  codigo_postal: '',
+  profissao: '',
 
   higiene_oral: '',
   atividades_desportivas: '',
@@ -36,7 +38,40 @@ export default function NovoPaciente() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
+  const [generos, setGeneros] = useState([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+        const r = await fetch('/genero', { headers: { ...authHeaders } });
+        if (!r.ok) return;
+        const data = await r.json().catch(() => []);
+        if (!cancelled) setGeneros(Array.isArray(data) ? data : []);
+      } catch {
+        // ignore: dropdown will just be empty
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const normalizeText = (s) =>
+    String(s || '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+  const looksNumericId = (s) => {
+    const t = String(s || '').trim();
+    return t !== '' && /^\d+$/.test(t);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -57,6 +92,53 @@ export default function NovoPaciente() {
     if (v) return setError(v);
     setLoading(true);
     try {
+      const token = localStorage.getItem('token');
+      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const fetchRefList = async (url) => {
+        const r = await fetch(url, { headers: { ...authHeaders } }).catch(() => null);
+        if (!r || !r.ok) return [];
+        const data = await r.json().catch(() => []);
+        return Array.isArray(data) ? data : [];
+      };
+
+      // Resolve género / estado civil: allow typing either ID (e.g. 1) or a PT/EN description.
+      const needsGeneroLookup = !!String(form.genero || '').trim() && !looksNumericId(form.genero);
+      const needsEstadoLookup = !!String(form.estado_civil || '').trim() && !looksNumericId(form.estado_civil);
+
+      const [generos, estadosCivis] = await Promise.all([
+        needsGeneroLookup ? fetchRefList('/genero') : Promise.resolve([]),
+        needsEstadoLookup ? fetchRefList('/estadocivil') : Promise.resolve([]),
+      ]);
+
+      const resolveGeneroId = () => {
+        const raw = String(form.genero || '').trim();
+        if (!raw) return null;
+        if (looksNumericId(raw)) return Number(raw);
+        const key = normalizeText(raw);
+        const found = generos.find((g) => {
+          const pt = normalizeText(g?.descricao_pt);
+          const en = normalizeText(g?.descricao_en);
+          return (pt && pt === key) || (en && en === key);
+        });
+        if (!found) throw new Error('Género inválido. Usa o ID (ex: 1) ou uma descrição existente.');
+        return Number(found.id_genero);
+      };
+
+      const resolveEstadoCivilId = () => {
+        const raw = String(form.estado_civil || '').trim();
+        if (!raw) return null;
+        if (looksNumericId(raw)) return Number(raw);
+        const key = normalizeText(raw);
+        const found = estadosCivis.find((ec) => {
+          const pt = normalizeText(ec?.descricao_pt);
+          const en = normalizeText(ec?.descricao_en);
+          return (pt && pt === key) || (en && en === key);
+        });
+        if (!found) throw new Error('Estado civil inválido. Usa o ID (ex: 1) ou uma descrição existente.');
+        return Number(found.id_estado_civil);
+      };
+
       // Map frontend form fields to backend model fields
       const generateTempUtente = () => {
         const s = ('TMP' + Date.now()).replace(/[^A-Z0-9]/ig, '');
@@ -69,14 +151,13 @@ export default function NovoPaciente() {
         nif: form.nif || null,
         contacto_telefonico: form.contacto || null,
         morada: form.morada || null,
+        codigo_postal: form.codigo_postal || null,
+        profissao: form.profissao || null,
         data_nascimento: form.data_nascimento || null,
-        id_genero: form.genero ? parseInt(form.genero) : null,
-        id_estado_civil: form.estado_civil ? parseInt(form.estado_civil) : null,
+        id_genero: resolveGeneroId(),
+        id_estado_civil: resolveEstadoCivilId(),
         email: form.email || null
       };
-
-      const token = localStorage.getItem('token');
-      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
       const parseBooleanPt = (val) => {
         const v = String(val || '').trim().toLowerCase();
@@ -88,7 +169,7 @@ export default function NovoPaciente() {
 
       const res = await fetch('/paciente', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify(payload)
       });
 
@@ -99,7 +180,8 @@ export default function NovoPaciente() {
 
       const data = await res.json().catch(() => ({}));
 
-      const numeroUtenteCriado = data?.numero_utente || payload.numero_utente;
+      const createdPaciente = data?.paciente || data;
+      const numeroUtenteCriado = createdPaciente?.numero_utente || payload.numero_utente;
 
       // Guardar dados clínicos (best-effort). Se falhar, não impede a criação do paciente.
       const habitosPayload = {
@@ -200,8 +282,23 @@ export default function NovoPaciente() {
                 <input name="contacto" value={form.contacto} onChange={handleChange} className="form-control" />
               </label>
               <label>
+                Código Postal
+                <input name="codigo_postal" value={form.codigo_postal} onChange={handleChange} className="form-control" />
+              </label>
+              <label>
+                Profissão
+                <input name="profissao" value={form.profissao} onChange={handleChange} className="form-control" />
+              </label>
+              <label>
                 Género
-                <input name="genero" value={form.genero} onChange={handleChange} className="form-control" />
+                <select name="genero" value={form.genero} onChange={handleChange} className="form-control">
+                  <option value="">Selecionar...</option>
+                  {generos.map((g) => (
+                    <option key={g.id_genero} value={String(g.id_genero)}>
+                      {g.descricao_pt || g.descricao_en || String(g.id_genero)}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label>
                 Data de Nascimento

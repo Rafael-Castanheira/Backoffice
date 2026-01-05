@@ -5,6 +5,7 @@ const Sequelize = db.Sequelize;
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const DB_RETRY_DELAY_MS = Number(process.env.DB_RETRY_DELAY_MS || 2000);
 
 // Middlewares
 app.use(cors());
@@ -88,13 +89,46 @@ async function createAdminUserIfNotFound() {
   }
 }
 
+/**
+ * Seeds reference tables with minimal defaults when empty.
+ * This prevents empty dropdowns in the frontend on fresh databases.
+ */
+async function seedGeneroIfEmpty() {
+  try {
+    if (!db.genero) return;
+    const count = await db.genero.count();
+    if (count > 0) return;
+
+    await db.genero.bulkCreate(
+      [
+        { id_genero: 1, descricao_pt: 'Masculino', descricao_en: 'Male' },
+        { id_genero: 2, descricao_pt: 'Feminino', descricao_en: 'Female' },
+      ],
+      { validate: true }
+    );
+    console.log("-> Tabela 'genero' estava vazia — seed Masculino/Feminino criado.");
+  } catch (error) {
+    console.error("⚠️ Falha ao fazer seed de 'genero' (continuando):", error.message || error);
+  }
+}
+
 // Usamos db.sequelize.sync() para garantir que a BD está ligada
 // antes de o servidor começar a aceitar pedidos.
 async function start() {
   try {
-    // In development, ensure tables exist by running the create script which is safe to run repeatedly.
-    // This helps when the DB is new and models/tables don't exist yet.
-    // Treat unset NODE_ENV as development for local convenience (so `npm run dev` triggers DB creation)
+    // Wait for DB to be available before accepting requests.
+    // This avoids intermittent 500s (e.g. /paciente) while the DB is still booting.
+    while (true) {
+      try {
+        await db.sequelize.authenticate();
+        break;
+      } catch (e) {
+        console.error('❌ Base de dados indisponível. A tentar novamente em breve...', e.message || e);
+        await new Promise((r) => setTimeout(r, DB_RETRY_DELAY_MS));
+      }
+    }
+
+    // Treat unset NODE_ENV as development for local convenience.
     if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
       try {
         const { execSync } = require('child_process');
@@ -105,8 +139,6 @@ async function start() {
       }
     }
 
-    // Try to authenticate and sync DB, but don't prevent the server from starting if DB is down.
-    await db.sequelize.authenticate();
     await db.sequelize.sync();
     console.log('✅ Base de dados ligada com sucesso.');
 
@@ -131,19 +163,19 @@ async function start() {
         console.log('🔧 Coluna historicodentario.historico_tratamentos adicionada.');
       }
     } catch (e) {
-      console.error('⚠️ Falha ao garantir coluna utilizadores.data_criacao (continuando):', e.message || e);
+      console.error('⚠️ Falha ao garantir colunas (continuando):', e.message || e);
     }
 
-    // Create the default admin user if it doesn't exist
     await createAdminUserIfNotFound();
+    await seedGeneroIfEmpty();
 
+    app.listen(PORT, () => {
+      console.log(`🚀 Servidor backend a correr em http://localhost:${PORT}`);
+    });
   } catch (err) {
-    console.error('❌ Erro ao ligar à base de dados:', err.stack || err.message || err);
+    console.error('❌ Erro ao inicializar servidor:', err.stack || err.message || err);
+    process.exitCode = 1;
   }
-
-  app.listen(PORT, () => {
-    console.log(`🚀 Servidor backend a correr em http://localhost:${PORT}`);
-  });
 }
 
 start();
