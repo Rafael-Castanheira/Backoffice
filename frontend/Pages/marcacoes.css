@@ -1,0 +1,422 @@
+.marcacoes-page {
+  position: relative;
+  padding: 120px 24px 80px; /* space for fixed navbar */
+  min-height: calc(100vh - 120px);
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.marcacoes-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0.08;
+}
+
+.marcacoes-watermark img {
+  width: 900px;
+  max-width: 86%;
+}
+
+.marcacoes-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.marcacoes-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 20px 0 20px;
+}
+
+.marcacoes-title {
+  margin: 0;
+  color: #9b7b3a;
+  font-size: 54px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.marcacoes-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.marcacoes-add {
+  background: #a79a57;
+  color: #fff;
+  border: none;
+  padding: 12px 34px;
+  font-size: 18px;
+  font-weight: 700;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 8px 14px rgba(0, 0, 0, 0.25);
+}
+
+.marcacoes-action {
+  background: #f4efdf;
+  color: #6c5a2e;
+  border: 1px solid rgba(155, 123, 58, 0.35);
+  padding: 10px 16px;
+  font-size: 16px;
+  font-weight: 800;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.marcacoes-add:active,
+.marcacoes-action:active {
+  transform: translateY(1px);
+}
+
+.marcacoes-error {
+  background: #fff3f3;
+  border: 1px solid #f1bcbc;
+  color: #8f2b2b;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+}
+
+.marcacoes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  align-items: stretch;
+}
+
+/* Calendar card */
+.marcacoes-calendar {
+  background: #f4efdf;
+  border: 1px solid rgba(155, 123, 58, 0.35);
+  border-radius: 14px;
+  padding: 16px;
+  min-height: 420px;
+  height: 100%;
+}
+
+.marcacoes-cal-header {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.marcacoes-cal-title {
+  text-align: center;
+  font-weight: 900;
+  color: #6c5a2e;
+  font-size: 18px;
+}
+
+.marcacoes-cal-nav {
+  width: 44px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(155, 123, 58, 0.35);
+  background: #fff7e6;
+  color: #6c5a2e;
+  font-weight: 900;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.marcacoes-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin: 10px 0 8px;
+  color: #9b7b3a;
+  font-weight: 900;
+  font-size: 12px;
+  text-align: center;
+}
+
+.marcacoes-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.marcacoes-day {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(155, 123, 58, 0.25);
+  background: #ffffff;
+  color: #111;
+  cursor: pointer;
+  text-align: left;
+  padding: 8px 10px;
+}
+
+.marcacoes-day:hover {
+  filter: brightness(0.99);
+}
+
+.marcacoes-day-empty {
+  background: transparent;
+  border: none;
+}
+
+.marcacoes-daynum {
+  font-weight: 900;
+  color: #6c5a2e;
+  font-size: 14px;
+}
+
+.marcacoes-badge {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #a79a57;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.marcacoes-day.selected {
+  outline: 3px solid rgba(167, 154, 87, 0.65);
+  border-color: rgba(167, 154, 87, 0.8);
+}
+
+.marcacoes-day.today {
+  border-color: rgba(155, 123, 58, 0.55);
+}
+
+.marcacoes-day.has {
+  background: #fff7e6;
+}
+
+.marcacoes-loading {
+  text-align: center;
+  color: #6c5a2e;
+  padding: 12px 6px;
+  font-weight: 800;
+}
+
+/* Right panel */
+.marcacoes-panel {
+  background: #f4efdf;
+  border: 1px solid rgba(155, 123, 58, 0.35);
+  border-radius: 14px;
+  padding: 16px;
+  min-height: 420px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.marcacoes-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px; /* space for scrollbar */
+}
+
+/* Make scrollbar subtle */
+.marcacoes-panel-body::-webkit-scrollbar {
+  width: 10px;
+}
+.marcacoes-panel-body::-webkit-scrollbar-thumb {
+  background: rgba(167, 154, 87, 0.55);
+  border-radius: 999px;
+  border: 2px solid rgba(244, 239, 223, 1);
+}
+
+.marcacoes-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.marcacoes-panel-title {
+  font-weight: 900;
+  color: #6c5a2e;
+  font-size: 18px;
+}
+
+.marcacoes-panel-add {
+  background: #a79a57;
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 900;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 8px 14px rgba(0, 0, 0, 0.18);
+}
+
+.marcacoes-list {
+  display: grid;
+  gap: 10px;
+}
+
+.marcacoes-item {
+  background: #ffffff;
+  border: 1px solid rgba(155, 123, 58, 0.25);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.marcacoes-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.marcacoes-item-title {
+  font-weight: 900;
+  color: #111;
+}
+
+.marcacoes-item-del {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(155, 123, 58, 0.35);
+  background: #fff7e6;
+  color: #8f2b2b;
+  cursor: pointer;
+  padding: 0;
+  line-height: 0;
+}
+
+.marcacoes-item-del:hover {
+  filter: brightness(0.98);
+}
+
+.marcacoes-item-meta {
+  display: grid;
+  gap: 2px;
+  font-size: 13px;
+  color: #333;
+}
+
+.marcacoes-item-notes {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #333;
+  padding: 10px;
+  background: #f4efdf;
+  border-radius: 10px;
+  border: 1px solid rgba(155, 123, 58, 0.15);
+}
+
+.marcacoes-item-id {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #6c5a2e;
+  text-align: right;
+  font-weight: 900;
+}
+
+/* Form */
+.marcacoes-form {
+  display: grid;
+  gap: 12px;
+}
+
+.marcacoes-field {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  color: #333;
+  font-weight: 800;
+}
+
+.marcacoes-field span {
+  color: #6c5a2e;
+}
+
+.marcacoes-field select,
+.marcacoes-field input,
+.marcacoes-field textarea {
+  background: #ffffff;
+  border: 1px solid rgba(155, 123, 58, 0.35);
+  border-radius: 10px;
+  padding: 10px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  outline: none;
+}
+
+.marcacoes-field input::placeholder,
+.marcacoes-field textarea::placeholder {
+  color: rgba(17, 17, 17, 0.45);
+}
+
+.marcacoes-field textarea {
+  resize: vertical;
+}
+
+.marcacoes-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.marcacoes-hint {
+  font-size: 12px;
+  color: #6c5a2e;
+  font-weight: 800;
+}
+
+.marcacoes-empty {
+  text-align: center;
+  color: #6c5a2e;
+  padding: 18px 8px;
+  font-weight: 900;
+}
+
+@media (max-width: 980px) {
+  .marcacoes-title {
+    font-size: 40px;
+  }
+  .marcacoes-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .marcacoes-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .marcacoes-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .marcacoes-add {
+    padding: 12px 18px;
+  }
+}

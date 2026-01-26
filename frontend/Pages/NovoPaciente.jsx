@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import './novopaciente.css';
 
 const initialState = {
@@ -34,11 +34,15 @@ const initialState = {
 };
 
 export default function NovoPaciente() {
+  const { utenteId: responsavelUtenteId } = useParams();
+  const isDependente = !!String(responsavelUtenteId || '').trim();
+
   const [form, setForm] = useState(initialState);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [generos, setGeneros] = useState([]);
+  const [estadosCivis, setEstadosCivis] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,10 +51,20 @@ export default function NovoPaciente() {
       try {
         const token = localStorage.getItem('token');
         const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
-        const r = await fetch('/genero', { headers: { ...authHeaders } });
-        if (!r.ok) return;
-        const data = await r.json().catch(() => []);
-        if (!cancelled) setGeneros(Array.isArray(data) ? data : []);
+        const [rg, rec] = await Promise.all([
+          fetch('/genero', { headers: { ...authHeaders } }).catch(() => null),
+          fetch('/estadocivil', { headers: { ...authHeaders } }).catch(() => null),
+        ]);
+
+        if (rg && rg.ok) {
+          const data = await rg.json().catch(() => []);
+          if (!cancelled) setGeneros(Array.isArray(data) ? data : []);
+        }
+
+        if (rec && rec.ok) {
+          const data = await rec.json().catch(() => []);
+          if (!cancelled) setEstadosCivis(Array.isArray(data) ? data : []);
+        }
       } catch {
         // ignore: dropdown will just be empty
       }
@@ -147,6 +161,7 @@ export default function NovoPaciente() {
 
       const payload = {
         numero_utente: form.nif ? String(form.nif).slice(0,9) : generateTempUtente(), // ensure max 9 chars
+        ...(isDependente ? { pac_numero_utente: String(responsavelUtenteId) } : {}),
         nome: form.nome || null,
         nif: form.nif || null,
         contacto_telefonico: form.contacto || null,
@@ -233,10 +248,10 @@ export default function NovoPaciente() {
       }
       if (data.temp_password) {
         setSuccess(
-          `Paciente guardado. Credenciais provisórias enviadas por email (senha: ${data.temp_password}).${clinicalWarning}`
+          `${isDependente ? 'Dependente' : 'Paciente'} guardado. Credenciais provisórias enviadas por email (senha: ${data.temp_password}).${clinicalWarning}`
         );
       } else {
-        setSuccess(`Paciente guardado com sucesso.${clinicalWarning}`);
+        setSuccess(`${isDependente ? 'Dependente' : 'Paciente'} guardado com sucesso.${clinicalWarning}`);
       }
 
       setForm(initialState);
@@ -258,7 +273,7 @@ export default function NovoPaciente() {
       <main className="np-container">
         <div className="np-title-row">
           <button type="button" className="np-back" aria-label="Voltar" onClick={() => navigate(-1)}>&lt;</button>
-          <h1 className="np-title">Novo Paciente</h1>
+          <h1 className="np-title">{isDependente ? 'Novo Dependente' : 'Novo Paciente'}</h1>
         </div>
 
         <form className="np-form" onSubmit={handleSubmit}>
@@ -306,7 +321,14 @@ export default function NovoPaciente() {
               </label>
               <label>
                 Estado civil
-                <input name="estado_civil" value={form.estado_civil} onChange={handleChange} className="form-control" />
+                <select name="estado_civil" value={form.estado_civil} onChange={handleChange} className="form-control">
+                  <option value="">Selecionar...</option>
+                  {estadosCivis.map((ec) => (
+                    <option key={ec.id_estado_civil} value={String(ec.id_estado_civil)}>
+                      {ec.descricao_pt || ec.descricao_en || String(ec.id_estado_civil)}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label>
                 Email

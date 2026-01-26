@@ -35,6 +35,14 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.DATEONLY,
       allowNull: true
     },
+    hora_consulta: {
+      type: DataTypes.TIME,
+      allowNull: true
+    },
+    duracao_min: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
     observacoes: {
       type: DataTypes.TEXT,
       allowNull: true

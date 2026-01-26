@@ -15,7 +15,16 @@ exports.findAll = async (req, res) => {
 
 exports.findOne = async (req, res) => {
   try {
-    const item = await model.findByPk(req.params.id);
+    const item = await model.findByPk(req.params.id, {
+      include: [
+        {
+          model: db.utilizadores,
+          as: 'id_user_utilizadore',
+          attributes: ['id_user', 'numero_utente', 'nome', 'email'],
+          required: false,
+        },
+      ],
+    });
     if (!item) return res.status(404).json({ message: 'Not found' });
     res.json(item);
   } catch (err) {

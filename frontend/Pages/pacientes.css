@@ -72,7 +72,7 @@
 
 .pacientes-head {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr 0.8fr;
+  grid-template-columns: 1.2fr 0.8fr 0.8fr 0.35fr;
   gap: 18px;
   margin-bottom: 10px;
 }
@@ -94,8 +94,49 @@
 
 .pacientes-row {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr 0.8fr;
+  grid-template-columns: 1.2fr 0.8fr 0.8fr 0.35fr;
   gap: 18px;
+}
+
+.pacientes-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.pacientes-head-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pacientes-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(155, 123, 58, 0.35);
+  background: #fff7e6;
+  color: #8f2b2b;
+  cursor: pointer;
+  padding: 0;
+  line-height: 0;
+}
+
+.pacientes-trash-icon {
+  display: block;
+  pointer-events: none;
+}
+
+.pacientes-delete:hover {
+  filter: brightness(0.98);
+}
+
+.pacientes-delete:active {
+  transform: translateY(1px);
 }
 
 .pacientes-row-click {
@@ -162,7 +203,7 @@
   }
   .pacientes-head,
   .pacientes-row {
-    grid-template-columns: 1.1fr 1fr 1fr;
+    grid-template-columns: 1.1fr 1fr 1fr 0.35fr;
     gap: 12px;
   }
 }

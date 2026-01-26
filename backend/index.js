@@ -112,6 +112,91 @@ async function seedGeneroIfEmpty() {
   }
 }
 
+async function seedEstadoCivilIfEmpty() {
+  try {
+    if (!db.estadocivil) return;
+    const count = await db.estadocivil.count();
+    if (count > 0) return;
+
+    await db.estadocivil.bulkCreate(
+      [
+        { id_estado_civil: 1, descricao_pt: 'Solteiro', descricao_en: 'Single' },
+        { id_estado_civil: 2, descricao_pt: 'Casado', descricao_en: 'Married' },
+        { id_estado_civil: 3, descricao_pt: 'Divorciado', descricao_en: 'Divorced' },
+        { id_estado_civil: 4, descricao_pt: 'Viúvo', descricao_en: 'Widowed' },
+        { id_estado_civil: 5, descricao_pt: 'Separado', descricao_en: 'Separated' },
+        { id_estado_civil: 6, descricao_pt: 'União de facto', descricao_en: 'Civil union' },
+      ],
+      { validate: true }
+    );
+    console.log("-> Tabela 'estadocivil' estava vazia — seed criado.");
+  } catch (error) {
+    console.error("⚠️ Falha ao fazer seed de 'estadocivil' (continuando):", error.message || error);
+  }
+}
+
+async function seedMedicosIfMissing() {
+  try {
+    if (!db.medico || !db.utilizadores || !db.tipouser) return;
+
+    const [tipoMedico] = await db.tipouser.findOrCreate({
+      where: { descricao_pt: 'Médico' },
+      defaults: { id_tipo_user: 3, descricao_pt: 'Médico', descricao_en: 'Doctor' },
+    });
+    const medicoTipoId = tipoMedico.id_tipo_user || 3;
+
+    const seeds = [
+      { id_medico: 1, id_user: 9001, nome: 'Dra. Sílvia Coimbra' },
+      { id_medico: 2, id_user: 9002, nome: 'Dr. Diogo Calçada' },
+      { id_medico: 3, id_user: 9003, nome: 'Dra. Melissa Sousa' },
+    ];
+
+    for (const s of seeds) {
+      // Ensure user
+      let user = await db.utilizadores.findByPk(s.id_user);
+      if (!user) {
+        user = await db.utilizadores.create({
+          id_user: s.id_user,
+          id_tipo_user: medicoTipoId,
+          nome: s.nome,
+          email: null,
+          password_hash: null,
+          data_criacao: new Date(),
+          numero_utente: null,
+          // NOTE: don't set id_medico yet (FK may exist). We'll set it after medico exists.
+          id_medico: null,
+        });
+      } else {
+        const updates = {};
+        if (!user.id_tipo_user) updates.id_tipo_user = medicoTipoId;
+        if (!user.nome) updates.nome = s.nome;
+        if (!user.data_criacao) updates.data_criacao = new Date();
+        if (Object.keys(updates).length) await user.update(updates);
+      }
+
+      // Ensure medico
+      let med = await db.medico.findByPk(s.id_medico);
+      if (!med) {
+        med = await db.medico.create({ id_medico: s.id_medico, id_user: s.id_user });
+      } else if (!med.id_user) {
+        await med.update({ id_user: s.id_user });
+      }
+
+      // Link utilizador -> medico if missing
+      if (user && !user.id_medico) {
+        try {
+          await user.update({ id_medico: s.id_medico });
+        } catch (e) {
+          // If FK doesn't exist or another issue happens, don't block startup.
+          console.error('⚠️ Falha ao ligar utilizador ao médico (continuando):', e.message || e);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("⚠️ Falha ao fazer seed de 'medico' (continuando):", error.message || error);
+  }
+}
+
 // Usamos db.sequelize.sync() para garantir que a BD está ligada
 // antes de o servidor começar a aceitar pedidos.
 async function start() {
@@ -162,12 +247,30 @@ async function start() {
         });
         console.log('🔧 Coluna historicodentario.historico_tratamentos adicionada.');
       }
+
+      const cCols = await qi.describeTable('consulta');
+      if (!cCols.hora_consulta) {
+        await qi.addColumn('consulta', 'hora_consulta', {
+          type: Sequelize.TIME,
+          allowNull: true,
+        });
+        console.log('🔧 Coluna consulta.hora_consulta adicionada.');
+      }
+      if (!cCols.duracao_min) {
+        await qi.addColumn('consulta', 'duracao_min', {
+          type: Sequelize.INTEGER,
+          allowNull: true,
+        });
+        console.log('🔧 Coluna consulta.duracao_min adicionada.');
+      }
     } catch (e) {
       console.error('⚠️ Falha ao garantir colunas (continuando):', e.message || e);
     }
 
     await createAdminUserIfNotFound();
     await seedGeneroIfEmpty();
+    await seedEstadoCivilIfEmpty();
+    await seedMedicosIfMissing();
 
     app.listen(PORT, () => {
       console.log(`🚀 Servidor backend a correr em http://localhost:${PORT}`);

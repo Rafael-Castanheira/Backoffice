@@ -39,8 +39,31 @@ async function fetchJson(url) {
 
   if (!res.ok) {
     const contentType = res.headers.get('content-type') || '';
-    const data = contentType.includes('application/json') ? await res.json().catch(() => ({})) : {};
-    throw new Error(data.message || `Erro ao carregar ${url} (${res.status})`);
+    const raw = await res.text().catch(() => '');
+    let data = null;
+    if (contentType.includes('application/json')) {
+      try {
+        data = raw ? JSON.parse(raw) : null;
+      } catch {
+        data = null;
+      }
+    }
+
+    const msg = data?.message || data?.error || '';
+    if (
+      res.status === 500 &&
+      /ECONNREFUSED|connect\s+ECONNREFUSED|proxy\s+error|socket\s+hang\s+up|HPE_INVALID|ENOTFOUND/i.test(
+        `${raw}\n${msg}`
+      )
+    ) {
+      throw new Error(`Não foi possível ligar ao backend para ${url}. Confirma se o backend está a correr em http://127.0.0.1:3001.`);
+    }
+
+    if (res.status === 500 && /internal server error/i.test(String(msg)) && url.startsWith('/')) {
+      throw new Error(`Erro ao ligar ao backend para ${url}. Confirma se o backend está a correr em http://127.0.0.1:3001.`);
+    }
+
+    throw new Error(msg || `Erro ao carregar ${url} (${res.status})`);
   }
   return res.json();
 }
@@ -68,6 +91,7 @@ export default function PacienteInfo() {
   const [habitos, setHabitos] = useState(null);
   const [histDent, setHistDent] = useState(null);
   const [histMed, setHistMed] = useState(null);
+  const [dependentes, setDependentes] = useState([]);
   const [generos, setGeneros] = useState([]);
   const [estadosCivis, setEstadosCivis] = useState([]);
 
@@ -81,6 +105,7 @@ export default function PacienteInfo() {
       try {
         const pacientePromise = fetchJson(`/paciente/${encodeURIComponent(utenteId)}`);
         const utilizadoresPromise = fetchJson('/utilizadores');
+        const dependentesPromise = fetchJson('/paciente').catch(() => []);
 
         const generosPromise = fetchJson('/genero').catch(() => []);
         const estadosCivisPromise = fetchJson('/estadocivil').catch(() => []);
@@ -89,9 +114,10 @@ export default function PacienteInfo() {
         const histDentPromise = fetchJson(`/historicodentario/paciente/${encodeURIComponent(utenteId)}`).catch(() => []);
         const histMedPromise = fetchJson(`/historicomedico/paciente/${encodeURIComponent(utenteId)}`).catch(() => []);
 
-        const [pacienteRow, utilizadoresRows, generosRows, estadosCivisRows, habitosRows, histDentRows, histMedRows] = await Promise.all([
+        const [pacienteRow, utilizadoresRows, dependentesRows, generosRows, estadosCivisRows, habitosRows, histDentRows, histMedRows] = await Promise.all([
           pacientePromise,
           utilizadoresPromise,
+          dependentesPromise,
           generosPromise,
           estadosCivisPromise,
           habitosPromise,
@@ -99,9 +125,33 @@ export default function PacienteInfo() {
           histMedPromise,
         ]);
 
-        const u = Array.isArray(utilizadoresRows)
-          ? utilizadoresRows.find((x) => String(x?.numero_utente || '') === String(utenteId))
-          : null;
+        const utilizadoresArray = Array.isArray(utilizadoresRows) ? utilizadoresRows : [];
+
+        // Primary lookup: by numero_utente. Fallbacks: by paciente.id_user and/or by included user in /paciente/:id.
+        let u = utilizadoresArray.find((x) => String(x?.numero_utente || '') === String(utenteId)) || null;
+        if (!u && pacienteRow?.id_user != null && pacienteRow?.id_user !== '') {
+          u = utilizadoresArray.find((x) => String(x?.id_user || '') === String(pacienteRow.id_user)) || null;
+        }
+        if (!u && pacienteRow?.id_user_utilizadore) {
+          u = pacienteRow.id_user_utilizadore;
+        }
+
+        const userByUtente = new Map(utilizadoresArray.map((x) => [String(x?.numero_utente || ''), x]));
+        const userByIdUser = new Map(utilizadoresArray.map((x) => [String(x?.id_user || ''), x]));
+
+        const deps = (Array.isArray(dependentesRows) ? dependentesRows : [])
+          .filter((p) => String(p?.pac_numero_utente || '') === String(utenteId))
+          .map((p) => {
+            const depUtente = String(p?.numero_utente || '');
+            const depUser = userByUtente.get(depUtente) || userByIdUser.get(String(p?.id_user || ''));
+            return {
+              numero_utente: depUtente,
+              nif: p?.nif || depUtente,
+              nome: depUser?.nome || '',
+            };
+          })
+          .filter((x) => x.numero_utente)
+          .sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt'));
 
         if (!cancelled) {
           setPaciente(pacienteRow || null);
@@ -111,6 +161,7 @@ export default function PacienteInfo() {
           setHabitos(pickLatest(habitosRows, 'data_registo'));
           setHistDent(pickLatest(histDentRows, 'data_registo'));
           setHistMed(pickLatest(histMedRows, 'data_registo'));
+          setDependentes(deps);
         }
       } catch (e) {
         if (!cancelled) setError(e?.message || 'Erro desconhecido');
@@ -327,11 +378,38 @@ export default function PacienteInfo() {
               </div>
             </section>
 
+            <section className="pi-section">
+              <h2>Dependentes</h2>
+
+              {!dependentes.length ? (
+                <div className="pi-loading">Sem dependentes associados.</div>
+              ) : (
+                <div className="pi-formgrid">
+                  {dependentes.map((d) => (
+                    <button
+                      key={d.numero_utente}
+                      type="button"
+                      className="pi-btn"
+                      onClick={() => navigate(`/pacientes/${encodeURIComponent(d.numero_utente)}`)}
+                      style={{ justifyContent: 'space-between', display: 'flex', gap: 12 }}
+                    >
+                      <span>{d.nome || 'Dependente'}</span>
+                      <span style={{ opacity: 0.9 }}>NIF: {d.nif}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </section>
+
             <div className="pi-actions">
               <button type="button" className="pi-btn" onClick={() => navigate(-1)}>
                 Voltar
               </button>
-              <button type="button" className="pi-btn" onClick={() => navigate('/paciente/novo')}>
+              <button
+                type="button"
+                className="pi-btn"
+                onClick={() => navigate(`/pacientes/${encodeURIComponent(utenteId)}/dependente/novo`)}
+              >
                 Adicionar Dependente
               </button>
             </div>
