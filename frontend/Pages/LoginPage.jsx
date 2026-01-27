@@ -10,14 +10,16 @@ const LoginPage = () => {
   const navigate = useNavigate();
 
   const validate = () => {
-    if (!email.trim()) {
-      setError('Por favor, insira o email.');
+    const identifier = String(email || '').trim();
+    if (!identifier) {
+      setError('Por favor, insira o email ou número de utente.');
       return false;
     }
-    // A more permissive regex to allow for local domains like 'admin@local'
-    const re = /^[^\s@]+@[^\s@]+$/;
-    if (!re.test(email)) {
-      setError('Email inválido.');
+    // Allow either email (including local domains like 'admin@local') OR a 9-digit utente number.
+    const isUtenteNumber = /^\d{9}$/.test(identifier);
+    const isEmail = /^[^\s@]+@[^\s@]+$/.test(identifier);
+    if (!isEmail && !isUtenteNumber) {
+      setError('Utilizador inválido. Use um email ou um número de utente (9 dígitos).');
       return false;
     }
     if (!password) {
@@ -38,10 +40,11 @@ const LoginPage = () => {
     setLoading(true);
     try {
       console.log('Fetching URL: /auth/login');
+      const identifier = String(email || '').trim();
       const res = await fetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password })
+        body: JSON.stringify({ email: identifier, password })
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -51,8 +54,9 @@ const LoginPage = () => {
       if (data.token) localStorage.setItem('token', data.token);
       if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
 
-      const isAdmin = String(data?.user?.id_tipo_user || '') === '1' || String(data?.user?.email || '').toLowerCase() === 'admin@local';
-      navigate(isAdmin ? '/marcacoes' : '/pacientes');
+      const userType = String(data?.user?.id_tipo_user || '');
+      const isAdmin = userType === '1' || String(data?.user?.email || '').toLowerCase() === 'admin@local';
+      navigate(isAdmin ? '/marcacoes' : '/home');
     } catch (err) {
       setError(err.message || 'Erro desconhecido');
     } finally {

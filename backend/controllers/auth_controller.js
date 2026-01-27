@@ -4,10 +4,16 @@ const db = require('../models');
 // Replace with proper hashing and JWT in production.
 async function login(req, res) {
   const { email, password } = req.body || {};
-  if (!email || !password) return res.status(400).json({ message: 'Email e password são obrigatórios' });
+  const identifier = String(email || '').trim();
+  if (!identifier || !password) return res.status(400).json({ message: 'Utilizador e password são obrigatórios' });
 
   try {
-    const user = await db.utilizadores.findOne({ where: { email } });
+    const { Op } = db.Sequelize;
+    const user = await db.utilizadores.findOne({
+      where: {
+        [Op.or]: [{ email: identifier }, { numero_utente: identifier }],
+      },
+    });
     if (!user) return res.status(401).json({ message: 'Credenciais inválidas' });
 
     // Development-only password check (plain text comparison)
@@ -24,6 +30,7 @@ async function login(req, res) {
         email: user.email,
         nome: user.nome,
         id_tipo_user: user.id_tipo_user,
+        numero_utente: user.numero_utente,
       },
     });
   } catch (err) {

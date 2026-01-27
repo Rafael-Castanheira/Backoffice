@@ -24,7 +24,7 @@ async function fetchJson(url) {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
-  } catch (e) {
+  } catch {
     throw new Error(`Falha ao ligar ao servidor ao carregar ${url}. Confirma se o backend está a correr em http://localhost:3001.`);
   }
 

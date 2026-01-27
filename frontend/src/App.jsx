@@ -6,26 +6,47 @@ import Pacientes from '../Pages/Pacientes';
 import PacienteInfo from '../Pages/PacienteInfo';
 import Marcacoes from '../Pages/Marcacoes';
 import PrivacyPage from '../Pages/PrivacyPage';
+import HomePaciente from '../Pages/HomePaciente';
+import Contactos from '../Pages/Contactos';
+import Perfil from '../Pages/Perfil';
 import Navbar from './components/Navbar';
+import RequireAuth from './components/RequireAuth';
 import './App.css';
 import { useLocation } from 'react-router-dom';
 
 function App() {
   const location = useLocation();
+
+  const token = localStorage.getItem('token');
+  let userType = '';
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    userType = String(user?.id_tipo_user || '');
+  } catch {
+    userType = '';
+  }
+  const authedHome = userType === '1' ? '/marcacoes' : '/home';
+
   return (
     <>
       {location.pathname !== '/login' && location.pathname !== '/privacy' && <Navbar />}
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Navigate to={token ? authedHome : '/login'} replace />} />
         <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/marcacoes" element={<Marcacoes />} />
-        <Route path="/paciente/novo" element={<NovoPaciente />} />
-        <Route path="/pacientes/:utenteId/dependente/novo" element={<NovoPaciente />} />
-        <Route path="/medicos" element={<Medicos />} />
-        <Route path="/pacientes" element={<Pacientes />} />
-        <Route path="/pacientes/:utenteId" element={<PacienteInfo />} />
-        <Route path="/home" element={<div>Home Page</div>} />
+
+        <Route path="/home" element={<RequireAuth><HomePaciente /></RequireAuth>} />
+        <Route path="/contactos" element={<RequireAuth><Contactos /></RequireAuth>} />
+        <Route path="/perfil" element={<RequireAuth><Perfil /></RequireAuth>} />
+
+        <Route path="/marcacoes" element={<RequireAuth><Marcacoes /></RequireAuth>} />
+        <Route path="/paciente/novo" element={<RequireAuth><NovoPaciente /></RequireAuth>} />
+        <Route path="/pacientes/:utenteId/dependente/novo" element={<RequireAuth><NovoPaciente /></RequireAuth>} />
+        <Route path="/medicos" element={<RequireAuth><Medicos /></RequireAuth>} />
+        <Route path="/pacientes" element={<RequireAuth><Pacientes /></RequireAuth>} />
+        <Route path="/pacientes/:utenteId" element={<RequireAuth><PacienteInfo /></RequireAuth>} />
+
+        <Route path="*" element={<Navigate to={token ? authedHome : '/login'} replace />} />
       </Routes>
     </>
   );

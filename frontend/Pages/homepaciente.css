@@ -1,0 +1,131 @@
+.homepaciente-page {
+  position: relative;
+  padding: 120px 24px 80px; /* espaço para navbar fixa */
+  min-height: 100vh;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.homepaciente-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.homepaciente-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 56px;
+  align-items: center;
+}
+
+.homepaciente-title {
+  margin: 0;
+  color: #9b7b3a;
+  font-size: 66px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+}
+
+.homepaciente-subtitle {
+  margin: 18px 0 22px;
+  color: #111;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.homepaciente-text {
+  margin: 0 0 14px;
+  color: #222;
+  font-size: 18px;
+  line-height: 1.8;
+  max-width: 640px;
+}
+
+.homepaciente-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 22px;
+  flex-wrap: wrap;
+}
+
+.homepaciente-primary {
+  background: #a79a57;
+  color: #fff;
+  border: none;
+  padding: 12px 22px;
+  font-size: 16px;
+  font-weight: 800;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.18);
+}
+
+.homepaciente-secondary {
+  background: #f4efdf;
+  color: #6c5a2e;
+  border: 1px solid rgba(155, 123, 58, 0.35);
+  padding: 12px 18px;
+  font-size: 16px;
+  font-weight: 800;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.homepaciente-primary:active,
+.homepaciente-secondary:active {
+  transform: translateY(1px);
+}
+
+.homepaciente-hero {
+  display: flex;
+  justify-content: center;
+}
+
+.homepaciente-hero-card {
+  width: min(520px, 100%);
+  background: #f7f2e5;
+  border-radius: 6px;
+  padding: 18px;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.12);
+}
+
+.homepaciente-hero-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 4px;
+}
+
+.homepaciente-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.homepaciente-ring {
+  width: 760px;
+  height: 760px;
+  border-radius: 50%;
+  border: 12px solid rgba(155, 123, 58, 0.18);
+  transform: translateX(120px);
+}
+
+@media (max-width: 980px) {
+  .homepaciente-grid {
+    grid-template-columns: 1fr;
+    gap: 26px;
+  }
+
+  .homepaciente-ring {
+    width: 600px;
+    height: 600px;
+    transform: translateX(0);
+  }
+
+  .homepaciente-title {
+    font-size: 54px;
+  }
+}
