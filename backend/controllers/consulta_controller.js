@@ -2,6 +2,12 @@ const db = require('../models');
 
 const model = db.consulta;
 
+const STATUS_PENDENTE = 1;
+const STATUS_CONFIRMADO = 2;
+
+const CLINIC_OPEN_MIN = 9 * 60;  // 09:00
+const CLINIC_CLOSE_MIN = 19 * 60; // 19:00
+
 const getPk = (m) => (m && m.primaryKeyAttributes && m.primaryKeyAttributes[0]) || 'id';
 
 function parseTimeToMinutes(timeLike) {
@@ -16,6 +22,40 @@ function parseTimeToMinutes(timeLike) {
 
 function rangesOverlap(startA, endA, startB, endB) {
     return startA < endB && startB < endA;
+}
+
+function parseDateOnlyToLocalDate(dateOnly) {
+    if (!dateOnly) return null;
+    const s = String(dateOnly).trim();
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+    if (!m) return null;
+    const y = Number(m[1]);
+    const mo = Number(m[2]);
+    const d = Number(m[3]);
+    const dt = new Date(y, mo - 1, d);
+    if (Number.isNaN(dt.getTime())) return null;
+    return dt;
+}
+
+function assertNotSunday({ data_hora_consulta }) {
+    const dt = parseDateOnlyToLocalDate(data_hora_consulta);
+    if (!dt) return;
+    if (dt.getDay() === 0) {
+        throw new Error('A clínica está fechada ao domingo.');
+    }
+}
+
+function assertWithinClinicHours({ hora_consulta, duracao_min }) {
+    const startMin = parseTimeToMinutes(hora_consulta);
+    const duration = duracao_min != null ? Number(duracao_min) : null;
+
+    // If missing info, don't block here (other validation layers may require it).
+    if (startMin == null || !duration || duration <= 0) return;
+
+    const endMin = startMin + duration;
+    if (startMin < CLINIC_OPEN_MIN || endMin > CLINIC_CLOSE_MIN) {
+        throw new Error('Horário inválido: a clínica funciona apenas entre as 09:00 e as 19:00.');
+    }
 }
 
 async function assertNoDoctorOverlap({ id_consulta = null, id_medico, data_hora_consulta, hora_consulta, duracao_min }) {
@@ -65,9 +105,28 @@ exports.findOne = async (req, res) => {
 
 exports.create = async (req, res) => {
     try {
+        if (req.body && (req.body.id_status_consulta == null || req.body.id_status_consulta === '')) {
+            req.body.id_status_consulta = STATUS_PENDENTE;
+        }
+        assertNotSunday(req.body);
+        assertWithinClinicHours(req.body);
         await assertNoDoctorOverlap(req.body);
         const created = await model.create(req.body);
         res.status(201).json(created);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+};
+
+exports.confirm = async (req, res) => {
+    try {
+        const id = req.params.id;
+        const current = await model.findByPk(id);
+        if (!current) return res.status(404).json({ message: 'Not found' });
+
+        // Confirmar = consulta realizada
+        await current.update({ id_status_consulta: STATUS_CONFIRMADO });
+        res.json(current);
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
@@ -83,6 +142,8 @@ exports.update = async (req, res) => {
         if (!current) return res.status(404).json({ message: 'Not found' });
 
         const merged = { ...current.toJSON(), ...req.body, id_consulta: current.id_consulta };
+        assertNotSunday(merged);
+        assertWithinClinicHours(merged);
         await assertNoDoctorOverlap(merged);
 
         const [num] = await model.update(req.body, { where });

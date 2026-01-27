@@ -49,7 +49,10 @@ const LoginPage = () => {
       }
       const data = await res.json();
       if (data.token) localStorage.setItem('token', data.token);
-      navigate('/');
+      if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
+
+      const isAdmin = String(data?.user?.id_tipo_user || '') === '1' || String(data?.user?.email || '').toLowerCase() === 'admin@local';
+      navigate(isAdmin ? '/marcacoes' : '/pacientes');
     } catch (err) {
       setError(err.message || 'Erro desconhecido');
     } finally {

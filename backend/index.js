@@ -135,6 +135,25 @@ async function seedEstadoCivilIfEmpty() {
   }
 }
 
+async function seedStatusConsultaIfMissing() {
+  try {
+    if (!db.statusconsulta) return;
+
+    // IDs fixos para manter simples no frontend e consistência no projeto.
+    await db.statusconsulta.findOrCreate({
+      where: { id_status_consulta: 1 },
+      defaults: { id_status_consulta: 1, descricao_pt: 'Pendente', descricao_en: 'Pending' },
+    });
+
+    await db.statusconsulta.findOrCreate({
+      where: { id_status_consulta: 2 },
+      defaults: { id_status_consulta: 2, descricao_pt: 'Confirmado', descricao_en: 'Confirmed' },
+    });
+  } catch (error) {
+    console.error("⚠️ Falha ao fazer seed de 'statusconsulta' (continuando):", error.message || error);
+  }
+}
+
 async function seedMedicosIfMissing() {
   try {
     if (!db.medico || !db.utilizadores || !db.tipouser) return;
@@ -270,6 +289,7 @@ async function start() {
     await createAdminUserIfNotFound();
     await seedGeneroIfEmpty();
     await seedEstadoCivilIfEmpty();
+    await seedStatusConsultaIfMissing();
     await seedMedicosIfMissing();
 
     app.listen(PORT, () => {

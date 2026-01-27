@@ -17,7 +17,15 @@ async function login(req, res) {
 
     // Return a simple token placeholder and basic user info
     const token = `dev-token-${user.id_user}`;
-    return res.json({ token, user: { id: user.id_user, email: user.email, nome: user.nome } });
+    return res.json({
+      token,
+      user: {
+        id: user.id_user,
+        email: user.email,
+        nome: user.nome,
+        id_tipo_user: user.id_tipo_user,
+      },
+    });
   } catch (err) {
     console.error('Auth login error:', err.message || err);
     // Return the actual error message for debugging purposes

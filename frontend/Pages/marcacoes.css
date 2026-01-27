@@ -29,7 +29,7 @@
 .marcacoes-title-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 18px;
   margin: 20px 0 20px;
 }
@@ -90,6 +90,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 22px;
   align-items: stretch;
+  --marcacoes-card-h: clamp(420px, calc(100vh - 360px), 640px);
 }
 
 /* Calendar card */
@@ -98,8 +99,27 @@
   border: 1px solid rgba(155, 123, 58, 0.35);
   border-radius: 14px;
   padding: 16px;
-  min-height: 420px;
-  height: 100%;
+  height: var(--marcacoes-card-h);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.marcacoes-calendar-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+}
+
+.marcacoes-calendar-body::-webkit-scrollbar {
+  width: 10px;
+}
+
+.marcacoes-calendar-body::-webkit-scrollbar-thumb {
+  background: rgba(167, 154, 87, 0.55);
+  border-radius: 999px;
+  border: 2px solid rgba(244, 239, 223, 1);
 }
 
 .marcacoes-cal-header {
@@ -160,6 +180,19 @@
   padding: 8px 10px;
 }
 
+.marcacoes-day.closed,
+.marcacoes-day:disabled {
+  background: rgba(244, 239, 223, 0.9);
+  border-color: rgba(155, 123, 58, 0.18);
+  color: rgba(108, 90, 46, 0.55);
+  cursor: not-allowed;
+  filter: none;
+}
+
+.marcacoes-day:disabled:hover {
+  filter: none;
+}
+
 .marcacoes-day:hover {
   filter: brightness(0.99);
 }
@@ -218,8 +251,7 @@
   border: 1px solid rgba(155, 123, 58, 0.35);
   border-radius: 14px;
   padding: 16px;
-  min-height: 420px;
-  height: 100%;
+  height: var(--marcacoes-card-h);
   display: flex;
   flex-direction: column;
 }
@@ -247,6 +279,44 @@
   align-items: center;
   gap: 12px;
   margin-bottom: 14px;
+}
+
+.marcacoes-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.marcacoes-panel-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 900;
+  color: #6c5a2e;
+}
+
+.marcacoes-panel-filter select {
+  background: #ffffff;
+  border: 1px solid rgba(155, 123, 58, 0.35);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #111;
+  outline: none;
+  min-width: 190px;
+}
+
+@media (max-width: 520px) {
+  .marcacoes-panel-actions {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  .marcacoes-panel-filter select {
+    min-width: 220px;
+    width: 100%;
+  }
 }
 
 .marcacoes-panel-title {
@@ -285,6 +355,31 @@
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 6px;
+}
+
+.marcacoes-item-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.marcacoes-item-confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(60, 130, 70, 0.35);
+  background: rgba(231, 247, 234, 0.9);
+  color: #2f6e3a;
+  cursor: pointer;
+  font-weight: 900;
+  font-size: 12px;
+}
+
+.marcacoes-item-confirm:hover {
+  filter: brightness(0.98);
 }
 
 .marcacoes-item-title {
@@ -326,14 +421,6 @@
   background: #f4efdf;
   border-radius: 10px;
   border: 1px solid rgba(155, 123, 58, 0.15);
-}
-
-.marcacoes-item-id {
-  margin-top: 8px;
-  font-size: 12px;
-  color: #6c5a2e;
-  text-align: right;
-  font-weight: 900;
 }
 
 /* Form */

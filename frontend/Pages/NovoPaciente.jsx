@@ -155,12 +155,13 @@ export default function NovoPaciente() {
 
       // Map frontend form fields to backend model fields
       const generateTempUtente = () => {
-        const s = ('TMP' + Date.now()).replace(/[^A-Z0-9]/ig, '');
-        return s.slice(-9);
+        // 9 dígitos aleatórios (ex: 004123987)
+        const n = Math.floor(Math.random() * 1e9);
+        return String(n).padStart(9, '0');
       };
 
       const payload = {
-        numero_utente: form.nif ? String(form.nif).slice(0,9) : generateTempUtente(), // ensure max 9 chars
+        numero_utente: form.nif ? String(form.nif).replace(/\D+/g, '').slice(0, 9) : generateTempUtente(), // ensure 9 digits max
         ...(isDependente ? { pac_numero_utente: String(responsavelUtenteId) } : {}),
         nome: form.nome || null,
         nif: form.nif || null,

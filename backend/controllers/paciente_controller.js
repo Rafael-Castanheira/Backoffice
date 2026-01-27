@@ -39,6 +39,17 @@ exports.create = async (req, res) => {
   try {
     const body = { ...req.body };
 
+    // Normalize PK
+    if (body.numero_utente != null) body.numero_utente = String(body.numero_utente).trim();
+    if (body.numero_utente === '') body.numero_utente = null;
+
+    if (body.numero_utente) {
+      const exists = await model.findByPk(body.numero_utente, { transaction: t });
+      if (exists) {
+        throw new Error('Já existe um paciente com esse NIF/número de utente.');
+      }
+    }
+
     // If a responsible patient was provided, ensure it exists.
     // Users often type the NIF; our PK is numero_utente, so we try both.
     if (body.pac_numero_utente != null && String(body.pac_numero_utente).trim() !== '') {
@@ -156,7 +167,16 @@ exports.create = async (req, res) => {
     return res.status(201).json(created);
   } catch (err) {
     await t.rollback();
-    res.status(400).json({ message: err.message });
+    const msgRaw = err?.message || '';
+    const constraint = err?.original?.constraint || err?.parent?.constraint || '';
+    const isPkDup = /paciente_pkey/i.test(String(constraint)) || /paciente_pkey/i.test(String(msgRaw));
+    const isUnique = err?.name === 'SequelizeUniqueConstraintError' || isPkDup;
+
+    if (isUnique) {
+      return res.status(400).json({ message: 'Já existe um paciente com esse NIF/número de utente.' });
+    }
+
+    res.status(400).json({ message: msgRaw || 'Erro ao criar paciente' });
   }
 };
 
@@ -175,14 +195,76 @@ exports.update = async (req, res) => {
 };
 
 exports.delete = async (req, res) => {
+  const t = await db.sequelize.transaction();
   try {
-    const pk = getPk(model);
-    const where = {};
-    where[pk] = req.params.id;
-    const num = await model.destroy({ where });
-    if (num === 0) return res.status(404).json({ message: 'Not found' });
+    const numeroUtente = String(req.params.id || '').trim();
+    if (!numeroUtente) return res.status(400).json({ message: 'Número de utente inválido.' });
+
+    const visited = new Set();
+
+    const deletePacienteCascade = async (utente) => {
+      const key = String(utente || '').trim();
+      if (!key || visited.has(key)) return;
+      visited.add(key);
+
+      // Carregar paciente (para obter id_user)
+      const paciente = await model.findByPk(key, { transaction: t });
+      if (!paciente) return;
+
+      // 1) Apagar dependentes (pacientes cujo responsável é este)
+      try {
+        const dependentes = await model.findAll({ where: { pac_numero_utente: key }, transaction: t });
+        for (const dep of dependentes) {
+          await deletePacienteCascade(dep.numero_utente);
+        }
+      } catch {
+        // ignore
+      }
+
+      // 2) Consultas e tabelas que dependem de consulta
+      if (db.consulta) {
+        const consultas = await db.consulta.findAll({ where: { numero_utente: key }, attributes: ['id_consulta'], transaction: t });
+        const consultaIds = consultas.map((c) => c.id_consulta).filter((x) => x != null);
+
+        if (consultaIds.length && db.tratamentorealizado) {
+          await db.tratamentorealizado.destroy({ where: { id_consulta: consultaIds }, transaction: t });
+        }
+
+        await db.consulta.destroy({ where: { numero_utente: key }, transaction: t });
+      }
+
+      // 3) Registos clínicos diretos do paciente
+      if (db.habitosestilovida) {
+        await db.habitosestilovida.destroy({ where: { numero_utente: key }, transaction: t });
+      }
+      if (db.historicodentario) {
+        await db.historicodentario.destroy({ where: { numero_utente: key }, transaction: t });
+      }
+      if (db.historicomedico) {
+        await db.historicomedico.destroy({ where: { numero_utente: key }, transaction: t });
+      }
+
+      // 4) Notificações (via utilizador associado)
+      const userId = paciente.id_user;
+      if (userId && db.notificacao) {
+        await db.notificacao.destroy({ where: { id_user: userId }, transaction: t });
+      }
+
+      // 5) Apagar o próprio paciente
+      await paciente.destroy({ transaction: t });
+
+      // 6) Apagar utilizador ligado ao paciente (para um re-registo ser "novo")
+      if (db.utilizadores) {
+        const whereUser = userId ? { id_user: userId } : { numero_utente: key };
+        await db.utilizadores.destroy({ where: whereUser, transaction: t });
+      }
+    };
+
+    await deletePacienteCascade(numeroUtente);
+    await t.commit();
     res.json({ message: 'Deleted' });
   } catch (err) {
+    await t.rollback();
     res.status(500).json({ message: err.message });
   }
 };

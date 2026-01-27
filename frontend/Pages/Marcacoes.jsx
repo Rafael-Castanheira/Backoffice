@@ -31,6 +31,13 @@ function getMondayBasedWeekday(date) {
   return (js + 6) % 7;
 }
 
+function parseTimeToMinutes(time) {
+  const s = String(time || '').trim();
+  const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(s);
+  if (!m) return null;
+  return Number(m[1]) * 60 + Number(m[2]);
+}
+
 async function fetchJson(url, options = {}) {
   const token = localStorage.getItem('token');
   let res;
@@ -103,16 +110,25 @@ function dayLabelPt(date) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
+function nextNonSunday(date) {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  if (d.getDay() !== 0) return d;
+  d.setDate(d.getDate() + 1);
+  return d;
+}
+
 export default function Marcacoes() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()));
-  const [selectedYmd, setSelectedYmd] = useState(() => toYmd(new Date()));
+  const [selectedYmd, setSelectedYmd] = useState(() => toYmd(nextNonSunday(new Date())));
 
   const [consultas, setConsultas] = useState([]);
   const [utilizadores, setUtilizadores] = useState([]);
   const [pacientes, setPacientes] = useState([]);
+
+  const [filterMedicoId, setFilterMedicoId] = useState('');
 
   const [showForm, setShowForm] = useState(false);
   // Nota: neste projeto, o "NIF" mostrado na lista corresponde ao numero_utente.
@@ -168,6 +184,13 @@ export default function Marcacoes() {
 
   const selectedDate = useMemo(() => parseYmd(selectedYmd) || new Date(), [selectedYmd]);
 
+  useEffect(() => {
+    if (selectedDate.getDay() === 0) {
+      setSelectedYmd(toYmd(nextNonSunday(selectedDate)));
+      setShowForm(false);
+    }
+  }, [selectedDate]);
+
   const userByUtente = useMemo(() => {
     const m = new Map();
     for (const u of Array.isArray(utilizadores) ? utilizadores : []) {
@@ -200,10 +223,48 @@ export default function Marcacoes() {
   }, [consultas]);
 
   const selectedConsultas = useMemo(() => {
-    return consultasByDay.get(selectedYmd) || [];
-  }, [consultasByDay, selectedYmd]);
+    const list = consultasByDay.get(selectedYmd) || [];
+    if (!filterMedicoId) return list;
+    return list.filter((c) => String(c?.id_medico ?? '') === String(filterMedicoId));
+  }, [consultasByDay, selectedYmd, filterMedicoId]);
 
   const medicoOptions = FIXED_MEDICOS;
+
+  const STATUS_LABEL_PT = useMemo(() => new Map([
+    ['1', 'Pendente'],
+    ['2', 'Confirmado'],
+  ]), []);
+
+  const confirmConsulta = async (c) => {
+    const id = c?.id_consulta;
+    if (id == null) return;
+
+    const ok = window.confirm(`Confirmar que a consulta #${id} foi realizada?`);
+    if (!ok) return;
+
+    setError('');
+    try {
+      let updated;
+      try {
+        updated = await fetchJson(`/consulta/${encodeURIComponent(id)}/confirmar`, { method: 'PUT' });
+      } catch (e1) {
+        // Backward compatible fallback in case backend hasn't been restarted / route not present.
+        if (String(e1?.message || '').includes('(404)')) {
+          updated = await fetchJson(`/consulta/${encodeURIComponent(id)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id_status_consulta: 2 }),
+          });
+        } else {
+          throw e1;
+        }
+      }
+
+      if (updated) setConsultas((prev) => prev.map((x) => (String(x?.id_consulta) === String(id) ? updated : x)));
+    } catch (e) {
+      setError(e?.message || 'Erro ao confirmar consulta');
+    }
+  };
 
   const calendarCells = useMemo(() => {
     const first = startOfMonth(currentMonth);
@@ -226,16 +287,38 @@ export default function Marcacoes() {
   }, [currentMonth]);
 
   const openNew = () => {
+    if (selectedDate.getDay() === 0) {
+      setError('A clínica está fechada ao domingo. Escolhe outro dia.');
+      return;
+    }
     setError('');
-    setForm({ nif: '', id_medico: '', hora_consulta: '', duracao_min: '30', observacoes: '' });
+    setForm({ nif: '', id_medico: filterMedicoId || '', hora_consulta: '', duracao_min: '30', observacoes: '' });
     setShowForm(true);
   };
 
   const saveConsulta = async (e) => {
     e.preventDefault();
+    if (selectedDate.getDay() === 0) {
+      setError('A clínica está fechada ao domingo. Escolhe outro dia.');
+      return;
+    }
     const nif = String(form.nif || '').trim();
     if (!nif || !form.id_medico || !form.hora_consulta || !form.duracao_min) {
       setError('Indica o NIF do paciente, escolhe um médico, a hora e a duração.');
+      return;
+    }
+
+    const startMin = parseTimeToMinutes(form.hora_consulta);
+    const dur = Number(form.duracao_min);
+    if (startMin == null || !dur || dur <= 0) {
+      setError('Indica uma hora e duração válidas.');
+      return;
+    }
+    const endMin = startMin + dur;
+    const OPEN = 9 * 60;
+    const CLOSE = 19 * 60;
+    if (startMin < OPEN || endMin > CLOSE) {
+      setError('Horário inválido: só é possível marcar entre as 09:00 e as 19:00.');
       return;
     }
 
@@ -298,14 +381,6 @@ export default function Marcacoes() {
       <div className="marcacoes-inner">
         <div className="marcacoes-title-row">
           <h1 className="marcacoes-title">Marcações</h1>
-          <div className="marcacoes-actions">
-            <button type="button" className="marcacoes-action" onClick={() => setCurrentMonth(startOfMonth(new Date()))}>
-              Hoje
-            </button>
-            <button type="button" className="marcacoes-add" onClick={openNew}>
-              Nova+
-            </button>
-          </div>
         </div>
 
         {error && <div className="marcacoes-error">{error}</div>}
@@ -322,57 +397,81 @@ export default function Marcacoes() {
               </button>
             </div>
 
-            <div className="marcacoes-weekdays">
-              <div>Seg</div>
-              <div>Ter</div>
-              <div>Qua</div>
-              <div>Qui</div>
-              <div>Sex</div>
-              <div>Sáb</div>
-              <div>Dom</div>
+            <div className="marcacoes-calendar-body">
+              <div className="marcacoes-weekdays">
+                <div>Seg</div>
+                <div>Ter</div>
+                <div>Qua</div>
+                <div>Qui</div>
+                <div>Sex</div>
+                <div>Sáb</div>
+                <div>Dom</div>
+              </div>
+
+              <div className="marcacoes-cal-grid">
+                {calendarCells.map((d, idx) => {
+                  if (!d) return <div key={idx} className="marcacoes-day marcacoes-day-empty" />;
+
+                  const ymd = toYmd(d);
+                  const isSelected = ymd === selectedYmd;
+                  const isToday = ymd === toYmd(new Date());
+                  const count = (consultasByDay.get(ymd) || []).length;
+                  const isSunday = d.getDay() === 0;
+
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      className={
+                        'marcacoes-day' +
+                        (isSelected ? ' selected' : '') +
+                        (isToday ? ' today' : '') +
+                        (count ? ' has' : '') +
+                        (isSunday ? ' closed' : '')
+                      }
+                      disabled={isSunday}
+                      onClick={() => {
+                        if (isSunday) return;
+                        setSelectedYmd(ymd);
+                        setShowForm(false);
+                      }}
+                      aria-label={
+                        isSunday
+                          ? `Domingo ${d.getDate()}, clínica fechada`
+                          : `Dia ${d.getDate()}${count ? `, ${count} marcações` : ''}`
+                      }
+                    >
+                      <div className="marcacoes-daynum">{d.getDate()}</div>
+                      {count ? <div className="marcacoes-badge">{count}</div> : null}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {loading ? <div className="marcacoes-loading">A carregar…</div> : null}
             </div>
-
-            <div className="marcacoes-cal-grid">
-              {calendarCells.map((d, idx) => {
-                if (!d) return <div key={idx} className="marcacoes-day marcacoes-day-empty" />;
-
-                const ymd = toYmd(d);
-                const isSelected = ymd === selectedYmd;
-                const isToday = ymd === toYmd(new Date());
-                const count = (consultasByDay.get(ymd) || []).length;
-
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    className={
-                      'marcacoes-day' +
-                      (isSelected ? ' selected' : '') +
-                      (isToday ? ' today' : '') +
-                      (count ? ' has' : '')
-                    }
-                    onClick={() => {
-                      setSelectedYmd(ymd);
-                      setShowForm(false);
-                    }}
-                    aria-label={`Dia ${d.getDate()}${count ? `, ${count} marcações` : ''}`}
-                  >
-                    <div className="marcacoes-daynum">{d.getDate()}</div>
-                    {count ? <div className="marcacoes-badge">{count}</div> : null}
-                  </button>
-                );
-              })}
-            </div>
-
-            {loading ? <div className="marcacoes-loading">A carregar…</div> : null}
           </section>
 
           <section className="marcacoes-panel" aria-label="Detalhes">
             <div className="marcacoes-panel-header">
               <div className="marcacoes-panel-title">{dayLabelPt(selectedDate)}</div>
-              <button type="button" className="marcacoes-panel-add" onClick={openNew}>
-                Adicionar+
-              </button>
+              <div className="marcacoes-panel-actions">
+                <label className="marcacoes-panel-filter" aria-label="Filtrar por médico">
+                  <span>Médico:</span>
+                  <select value={filterMedicoId} onChange={(e) => setFilterMedicoId(e.target.value)}>
+                    <option value="">Todos</option>
+                    {medicoOptions.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.nome}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <button type="button" className="marcacoes-panel-add" onClick={openNew}>
+                  Adicionar+
+                </button>
+              </div>
             </div>
 
             <div className="marcacoes-panel-body">
@@ -413,7 +512,13 @@ export default function Marcacoes() {
 
                 <label className="marcacoes-field">
                   <span>Hora</span>
-                  <input type="time" value={form.hora_consulta} onChange={(e) => setForm((f) => ({ ...f, hora_consulta: e.target.value }))} />
+                  <input
+                    type="time"
+                    min="09:00"
+                    max="19:00"
+                    value={form.hora_consulta}
+                    onChange={(e) => setForm((f) => ({ ...f, hora_consulta: e.target.value }))}
+                  />
                 </label>
 
                 <label className="marcacoes-field">
@@ -456,31 +561,50 @@ export default function Marcacoes() {
                       const medName = c?.id_medico != null ? medicoNameById.get(String(c.id_medico)) : '';
                       const hora = c?.hora_consulta ? String(c.hora_consulta).slice(0, 5) : '—';
                       const dur = c?.duracao_min != null ? `${c.duracao_min} min` : '—';
+                      const statusId = c?.id_status_consulta != null ? String(c.id_status_consulta) : '1';
+                      const statusLabel = STATUS_LABEL_PT.get(statusId) || 'Pendente';
+                      const isConfirmed = statusId === '2';
 
                       return (
                         <article key={c.id_consulta} className="marcacoes-item">
                           <div className="marcacoes-item-top">
                             <div className="marcacoes-item-title">{patientName}</div>
-                            <button type="button" className="marcacoes-item-del" onClick={() => deleteConsulta(c)} aria-label={`Eliminar marcação ${c.id_consulta}`}>
-                              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
-                                <path
-                                  fill="currentColor"
-                                  d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zM7 9h2v9H7V9zm1 13h8a2 2 0 0 0 2-2V7H6v13a2 2 0 0 0 2 2z"
-                                />
-                              </svg>
-                            </button>
+                            <div className="marcacoes-item-actions">
+                              {!isConfirmed ? (
+                                <button
+                                  type="button"
+                                  className="marcacoes-item-confirm"
+                                  onClick={() => confirmConsulta(c)}
+                                  aria-label={`Confirmar consulta ${c.id_consulta}`}
+                                  title="Confirmar consulta realizada"
+                                >
+                                  Confirmar
+                                </button>
+                              ) : null}
+
+                              <button type="button" className="marcacoes-item-del" onClick={() => deleteConsulta(c)} aria-label={`Eliminar marcação ${c.id_consulta}`}>
+                                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+                                  <path
+                                    fill="currentColor"
+                                    d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zM7 9h2v9H7V9zm1 13h8a2 2 0 0 0 2-2V7H6v13a2 2 0 0 0 2 2z"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
                           <div className="marcacoes-item-meta">
+                            <div><strong>Estado:</strong> {statusLabel}</div>
                             <div><strong>Médico:</strong> {medName || '—'}</div>
                             <div><strong>Hora:</strong> {hora} &nbsp; <strong>Duração:</strong> {dur}</div>
                           </div>
                           {c?.observacoes ? <div className="marcacoes-item-notes">{c.observacoes}</div> : null}
-                          <div className="marcacoes-item-id">#{c.id_consulta}</div>
                         </article>
                       );
                     })
                   ) : (
-                    <div className="marcacoes-empty">Sem marcações neste dia.</div>
+                    <div className="marcacoes-empty">
+                      {filterMedicoId ? 'Sem marcações para este médico neste dia.' : 'Sem marcações neste dia.'}
+                    </div>
                   )}
                 </div>
               ) : null}
