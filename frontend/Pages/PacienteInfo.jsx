@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './pacienteinfo.css';
 
@@ -83,6 +83,8 @@ export default function PacienteInfo() {
   const navigate = useNavigate();
   const { utenteId } = useParams();
 
+  const fileInputRef = useRef(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -95,14 +97,20 @@ export default function PacienteInfo() {
   const [generos, setGeneros] = useState([]);
   const [estadosCivis, setEstadosCivis] = useState([]);
 
+  const [docs, setDocs] = useState([]);
+  const [docsError, setDocsError] = useState('');
+  const [uploading, setUploading] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       setLoading(true);
       setError('');
+      setDocsError('');
 
       try {
+        let docsErr = '';
         const pacientePromise = fetchJson(`/paciente/${encodeURIComponent(utenteId)}`);
         const utilizadoresPromise = fetchJson('/utilizadores');
         const dependentesPromise = fetchJson('/paciente').catch(() => []);
@@ -114,7 +122,22 @@ export default function PacienteInfo() {
         const histDentPromise = fetchJson(`/historicodentario/paciente/${encodeURIComponent(utenteId)}`).catch(() => []);
         const histMedPromise = fetchJson(`/historicomedico/paciente/${encodeURIComponent(utenteId)}`).catch(() => []);
 
-        const [pacienteRow, utilizadoresRows, dependentesRows, generosRows, estadosCivisRows, habitosRows, histDentRows, histMedRows] = await Promise.all([
+        const docsPromise = fetchJson(`/paciente/${encodeURIComponent(utenteId)}/documentos`).catch((e) => {
+          docsErr = e?.message || 'Erro ao carregar documentos.';
+          return [];
+        });
+
+        const [
+          pacienteRow,
+          utilizadoresRows,
+          dependentesRows,
+          generosRows,
+          estadosCivisRows,
+          habitosRows,
+          histDentRows,
+          histMedRows,
+          docsRows,
+        ] = await Promise.all([
           pacientePromise,
           utilizadoresPromise,
           dependentesPromise,
@@ -123,6 +146,7 @@ export default function PacienteInfo() {
           habitosPromise,
           histDentPromise,
           histMedPromise,
+          docsPromise,
         ]);
 
         const utilizadoresArray = Array.isArray(utilizadoresRows) ? utilizadoresRows : [];
@@ -162,6 +186,8 @@ export default function PacienteInfo() {
           setHistDent(pickLatest(histDentRows, 'data_registo'));
           setHistMed(pickLatest(histMedRows, 'data_registo'));
           setDependentes(deps);
+          setDocs(Array.isArray(docsRows) ? docsRows : []);
+          setDocsError(docsErr);
         }
       } catch (e) {
         if (!cancelled) setError(e?.message || 'Erro desconhecido');
@@ -232,6 +258,141 @@ export default function PacienteInfo() {
     cirurgias: histMed?.historico_cirurgico || '',
   };
 
+  async function refreshDocs() {
+    try {
+      setDocsError('');
+      const rows = await fetchJson(`/paciente/${encodeURIComponent(utenteId)}/documentos`).catch(() => []);
+      setDocs(Array.isArray(rows) ? rows : []);
+    } catch (e) {
+      setDocsError(e?.message || 'Erro ao carregar documentos.');
+    }
+  }
+
+  async function uploadPdf(file) {
+    if (!file) return;
+
+    setUploading(true);
+    setDocsError('');
+
+    const token = localStorage.getItem('token');
+    const fd = new FormData();
+    fd.append('file', file);
+
+    let res;
+    try {
+      res = await fetch(`/paciente/${encodeURIComponent(utenteId)}/documentos`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: fd,
+      });
+    } catch {
+      setUploading(false);
+      setDocsError('Falha ao ligar ao servidor para carregar o PDF.');
+      return;
+    }
+
+    if (!res.ok) {
+      const raw = await res.text().catch(() => '');
+      let msg = raw;
+      try {
+        const data = raw ? JSON.parse(raw) : null;
+        msg = data?.message || data?.error || raw;
+      } catch {
+        // ignore
+      }
+      setUploading(false);
+      setDocsError(msg || `Erro no upload (${res.status})`);
+      return;
+    }
+
+    await refreshDocs();
+    setUploading(false);
+  }
+
+  async function downloadDoc(doc) {
+    setDocsError('');
+    const token = localStorage.getItem('token');
+
+    let res;
+    try {
+      res = await fetch(`/paciente/${encodeURIComponent(utenteId)}/documentos/${encodeURIComponent(doc.id)}`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+    } catch {
+      setDocsError('Falha ao ligar ao servidor para descarregar o PDF.');
+      return;
+    }
+
+    if (!res.ok) {
+      const raw = await res.text().catch(() => '');
+      let msg = raw;
+      try {
+        const data = raw ? JSON.parse(raw) : null;
+        msg = data?.message || data?.error || raw;
+      } catch {
+        // ignore
+      }
+      setDocsError(msg || `Erro no download (${res.status})`);
+      return;
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = doc?.originalName || 'documento.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function deleteDoc(doc) {
+    if (!doc?.id) return;
+    const ok = window.confirm(`Eliminar o documento "${doc.originalName || 'documento.pdf'}"?`);
+    if (!ok) return;
+
+    setDocsError('');
+    const token = localStorage.getItem('token');
+
+    let res;
+    try {
+      res = await fetch(`/paciente/${encodeURIComponent(utenteId)}/documentos/${encodeURIComponent(doc.id)}`, {
+        method: 'DELETE',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+    } catch {
+      setDocsError('Falha ao ligar ao servidor para eliminar o PDF.');
+      return;
+    }
+
+    if (!res.ok && res.status !== 204) {
+      const raw = await res.text().catch(() => '');
+      let msg = raw;
+      try {
+        const data = raw ? JSON.parse(raw) : null;
+        msg = data?.message || data?.error || raw;
+      } catch {
+        // ignore
+      }
+
+      if (/Cannot\s+DELETE\b/i.test(String(raw))) {
+        msg = 'O backend ainda não tem a rota de eliminar ativa. Reinicia o backend e tenta novamente.';
+      }
+
+      setDocsError(msg || `Erro ao eliminar (${res.status})`);
+      return;
+    }
+
+    await refreshDocs();
+  }
+
   return (
     <div className="pi-page">
       <div className="pi-inner">
@@ -240,7 +401,39 @@ export default function PacienteInfo() {
             &lt;
           </button>
           <h1 className="pi-title">{headerName}</h1>
-          <div className="pi-utente">NIF: {paciente?.nif || utenteId}</div>
+          <div className="pi-utenteWrap">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf,.pdf"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (file) uploadPdf(file);
+              }}
+            />
+            <button
+              type="button"
+              className="pi-uploadBtn"
+              disabled={uploading}
+              onClick={() => fileInputRef.current?.click()}
+              title="Carregar PDF para este paciente"
+              aria-label="Carregar PDF"
+            >
+              {uploading ? (
+                <span className="pi-uploadSpinner" aria-hidden="true" />
+              ) : (
+                <svg className="pi-uploadIcon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+                  <path
+                    fill="currentColor"
+                    d="M5 20h14v-2H5v2zM12 2l-5.5 5.5 1.41 1.41L11 5.83V16h2V5.83l3.09 3.09 1.41-1.41L12 2z"
+                  />
+                </svg>
+              )}
+            </button>
+            <div className="pi-utente">NIF: {paciente?.nif || utenteId}</div>
+          </div>
         </div>
 
         {error && <div className="pi-error">{error}</div>}
@@ -396,6 +589,41 @@ export default function PacienteInfo() {
                       <span>{d.nome || 'Dependente'}</span>
                       <span style={{ opacity: 0.9 }}>NIF: {d.nif}</span>
                     </button>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="pi-section">
+              <h2>Documentos (PDF)</h2>
+
+              {docsError && <div className="pi-error">{docsError}</div>}
+
+              {!docs.length ? (
+                <div className="pi-loading">Sem documentos.</div>
+              ) : (
+                <div className="pi-docList">
+                  {docs.map((d) => (
+                    <div key={d.id} className="pi-docRow">
+                      <button type="button" className="pi-docBtn" onClick={() => downloadDoc(d)}>
+                        <span className="pi-docName">{d.originalName || 'documento.pdf'}</span>
+                        <span className="pi-docMeta">{d.uploadedAt ? new Date(d.uploadedAt).toLocaleDateString('pt-PT') : ''}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="pi-docDel"
+                        title="Eliminar PDF"
+                        aria-label="Eliminar PDF"
+                        onClick={() => deleteDoc(d)}
+                      >
+                        <svg className="pi-docTrashIcon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+                          <path
+                            fill="currentColor"
+                            d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zM7 9h2v9H7V9zm1 13h8a2 2 0 0 0 2-2V7H6v13a2 2 0 0 0 2 2z"
+                          />
+                        </svg>
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}
