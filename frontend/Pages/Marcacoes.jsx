@@ -1,5 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './marcacoes.css';
+
+function getLoggedUser() {
+  try {
+    return JSON.parse(localStorage.getItem('user') || 'null');
+  } catch {
+    return null;
+  }
+}
+
+function isAdminUser(user) {
+  const userType = String(user?.id_tipo_user || '');
+  return userType === '1' || String(user?.email || '').toLowerCase() === 'admin@local';
+}
 
 function toYmd(date) {
   const yyyy = date.getFullYear();
@@ -117,7 +131,187 @@ function nextNonSunday(date) {
   return d;
 }
 
-export default function Marcacoes() {
+function formatDateDdMmYyWithSpaces(dateOnly) {
+  const s = String(dateOnly || '').trim();
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return '';
+  const yy = m[1].slice(2);
+  return `${m[3]} / ${m[2]} / ${yy}`;
+}
+
+function PacienteMarcacoes() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [consultas, setConsultas] = useState([]);
+  const [page, setPage] = useState(1);
+
+  const user = useMemo(() => getLoggedUser(), []);
+  const numeroUtente = String(user?.numero_utente || '').trim();
+
+  const FIXED_MEDICOS_SHORT = useMemo(
+    () => new Map([
+      ['1', 'Dr.Sílvia'],
+      ['2', 'Dr.Diogo'],
+      ['3', 'Dr.Melissa'],
+    ]),
+    []
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError('');
+
+      if (!numeroUtente) {
+        setConsultas([]);
+        setError('Não foi possível identificar o número de utente deste utilizador.');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const rows = await fetchJson(`/consulta?numero_utente=${encodeURIComponent(numeroUtente)}`);
+        if (cancelled) return;
+        const list = Array.isArray(rows) ? rows : [];
+        // Extra safety: filtrar no frontend também.
+        setConsultas(list.filter((c) => String(c?.numero_utente || '').trim() === numeroUtente));
+      } catch (e) {
+        if (!cancelled) setError(e?.message || 'Erro desconhecido');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [numeroUtente]);
+
+  const rows = useMemo(() => {
+    const list = Array.isArray(consultas) ? consultas : [];
+    // Já vem ordenado do backend (DESC), mas garantimos estabilidade.
+    return [...list].sort((a, b) => Number(b?.id_consulta) - Number(a?.id_consulta));
+  }, [consultas]);
+
+  const PAGE_SIZE = 7;
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+
+  useEffect(() => {
+    setPage((p) => Math.min(Math.max(1, p), totalPages));
+  }, [totalPages]);
+
+  const pageRows = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return rows.slice(start, start + PAGE_SIZE);
+  }, [rows, page]);
+
+  const pageNumbers = useMemo(() => {
+    const maxButtons = 7;
+    if (totalPages <= maxButtons) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const half = Math.floor(maxButtons / 2);
+    let start = Math.max(1, page - half);
+    let end = Math.min(totalPages, start + maxButtons - 1);
+    start = Math.max(1, end - maxButtons + 1);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  }, [page, totalPages]);
+
+  return (
+    <div className="marcacoes-page marcacoes-page--paciente">
+      <div className="marcacoes-watermark" aria-hidden="true">
+        <div className="marcacoes-ring" />
+      </div>
+
+      <div className="marcacoes-inner">
+        <div className="marcacoes-title-row">
+          <h1 className="marcacoes-title">As suas Marcações</h1>
+        </div>
+
+        {error && <div className="marcacoes-error">{error}</div>}
+
+        <div className="marcacoes-paciente-table" aria-label="Lista de marcações">
+          <div className="marcacoes-paciente-head">
+            <div className="marcacoes-paciente-head-cell">Motivo</div>
+            <div className="marcacoes-paciente-head-cell">Médico</div>
+            <div className="marcacoes-paciente-head-cell">Data</div>
+          </div>
+
+          <div className="marcacoes-paciente-body">
+            {loading ? (
+              <div className="marcacoes-loading">A carregar…</div>
+            ) : pageRows.length ? (
+              pageRows.map((c) => {
+                const motivo = String(c?.observacoes || '').trim();
+                const medico = FIXED_MEDICOS_SHORT.get(String(c?.id_medico ?? '')) || '—';
+                const data = formatDateDdMmYyWithSpaces(c?.data_hora_consulta) || '—';
+
+                const onOpen = () => {
+                  if (c?.id_consulta == null) return;
+                  navigate(`/marcacoes/${encodeURIComponent(String(c.id_consulta))}`);
+                };
+
+                return (
+                  <button
+                    key={c.id_consulta}
+                    type="button"
+                    className="marcacoes-paciente-row marcacoes-paciente-row--clickable"
+                    onClick={onOpen}
+                    aria-label={`Abrir marcação ${data}`}
+                  >
+                    <div className="marcacoes-paciente-cell">{motivo || '—'}</div>
+                    <div className="marcacoes-paciente-cell">{medico}</div>
+                    <div className="marcacoes-paciente-cell">{data}</div>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="marcacoes-empty">Sem marcações.</div>
+            )}
+          </div>
+        </div>
+
+        <div className="marcacoes-paciente-pagination" aria-label="Paginação">
+          <button
+            type="button"
+            className="marcacoes-paciente-pagebtn"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1}
+            aria-label="Página anterior"
+          >
+            «
+          </button>
+
+          {pageNumbers.map((n) => (
+            <button
+              key={n}
+              type="button"
+              className={'marcacoes-paciente-pagebtn' + (n === page ? ' active' : '')}
+              onClick={() => setPage(n)}
+              aria-current={n === page ? 'page' : undefined}
+            >
+              {n}
+            </button>
+          ))}
+
+          <button
+            type="button"
+            className="marcacoes-paciente-pagebtn"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+            aria-label="Página seguinte"
+          >
+            »
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminMarcacoes() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -614,4 +808,10 @@ export default function Marcacoes() {
       </div>
     </div>
   );
+}
+
+export default function Marcacoes() {
+  const user = getLoggedUser();
+  if (isAdminUser(user)) return <AdminMarcacoes />;
+  return <PacienteMarcacoes />;
 }

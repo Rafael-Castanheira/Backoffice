@@ -86,7 +86,19 @@ async function assertNoDoctorOverlap({ id_consulta = null, id_medico, data_hora_
 
 exports.findAll = async (req, res) => {
     try {
-        const items = await model.findAll();
+        const where = {};
+        if (req.query && req.query.numero_utente != null && String(req.query.numero_utente).trim() !== '') {
+            where.numero_utente = String(req.query.numero_utente).trim();
+        }
+
+        const items = await model.findAll({
+            where,
+            order: [
+                ['data_hora_consulta', 'DESC'],
+                ['hora_consulta', 'DESC'],
+                ['id_consulta', 'DESC'],
+            ],
+        });
         res.json(items);
     } catch (err) {
         res.status(500).json({ message: err.message });

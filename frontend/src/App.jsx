@@ -5,27 +5,38 @@ import Medicos from '../Pages/Medicos';
 import Pacientes from '../Pages/Pacientes';
 import PacienteInfo from '../Pages/PacienteInfo';
 import Marcacoes from '../Pages/Marcacoes';
+import MarcacaoDetalhe from '../Pages/MarcacaoDetalhe';
 import PrivacyPage from '../Pages/PrivacyPage';
 import HomePaciente from '../Pages/HomePaciente';
 import Contactos from '../Pages/Contactos';
 import Perfil from '../Pages/Perfil';
 import Navbar from './components/Navbar';
 import RequireAuth from './components/RequireAuth';
+import Footer from './components/Footer';
 import './App.css';
 import { useLocation } from 'react-router-dom';
+
+function isAdminUser(user) {
+  const userType = String(user?.id_tipo_user || '');
+  return userType === '1' || String(user?.email || '').toLowerCase() === 'admin@local';
+}
 
 function App() {
   const location = useLocation();
 
   const token = localStorage.getItem('token');
   let userType = '';
+  let user = null;
   try {
-    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    user = JSON.parse(localStorage.getItem('user') || 'null');
     userType = String(user?.id_tipo_user || '');
   } catch {
     userType = '';
+    user = null;
   }
   const authedHome = userType === '1' ? '/marcacoes' : '/home';
+  const isAdmin = isAdminUser(user);
+  const showFooter = !isAdmin && location.pathname !== '/login' && location.pathname !== '/privacy';
 
   return (
     <>
@@ -40,6 +51,7 @@ function App() {
         <Route path="/perfil" element={<RequireAuth><Perfil /></RequireAuth>} />
 
         <Route path="/marcacoes" element={<RequireAuth><Marcacoes /></RequireAuth>} />
+        <Route path="/marcacoes/:consultaId" element={<RequireAuth><MarcacaoDetalhe /></RequireAuth>} />
         <Route path="/paciente/novo" element={<RequireAuth><NovoPaciente /></RequireAuth>} />
         <Route path="/pacientes/:utenteId/dependente/novo" element={<RequireAuth><NovoPaciente /></RequireAuth>} />
         <Route path="/medicos" element={<RequireAuth><Medicos /></RequireAuth>} />
@@ -48,6 +60,7 @@ function App() {
 
         <Route path="*" element={<Navigate to={token ? authedHome : '/login'} replace />} />
       </Routes>
+      {showFooter ? <Footer /> : null}
     </>
   );
 }

@@ -21,6 +21,15 @@
   max-width: 86%;
 }
 
+/* Patient view watermark ring (used instead of image) */
+.marcacoes-ring {
+  width: 760px;
+  height: 760px;
+  border-radius: 50%;
+  border: 12px solid rgba(155, 123, 58, 0.18);
+  transform: translateX(120px);
+}
+
 .marcacoes-inner {
   max-width: 1100px;
   margin: 0 auto;
@@ -481,6 +490,122 @@
   color: #6c5a2e;
   padding: 18px 8px;
   font-weight: 900;
+}
+
+/* --------------------------- */
+/* Paciente: tabela simples */
+/* --------------------------- */
+
+.marcacoes-page--paciente .marcacoes-inner {
+  max-width: 980px;
+}
+
+.marcacoes-paciente-table {
+  margin-top: 20px;
+  display: grid;
+  gap: 10px;
+}
+
+.marcacoes-paciente-head {
+  display: grid;
+  grid-template-columns: 1.35fr 0.9fr 0.75fr;
+  gap: 18px;
+}
+
+.marcacoes-paciente-head-cell {
+  background: #a79a57;
+  color: #ffffff;
+  font-weight: 800;
+  text-align: center;
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-size: 20px;
+}
+
+.marcacoes-paciente-body {
+  display: grid;
+  gap: 10px;
+}
+
+.marcacoes-paciente-row {
+  display: grid;
+  grid-template-columns: 1.35fr 0.9fr 0.75fr;
+  gap: 18px;
+}
+
+.marcacoes-paciente-row--clickable {
+  border: none;
+  padding: 0;
+  background: transparent;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.marcacoes-paciente-row--clickable:hover .marcacoes-paciente-cell {
+  filter: brightness(0.99);
+}
+
+.marcacoes-paciente-row--clickable:active .marcacoes-paciente-cell {
+  transform: translateY(1px);
+}
+
+.marcacoes-paciente-cell {
+  background: #f4efdf;
+  border: 1px solid rgba(155, 123, 58, 0.35);
+  color: #111;
+  border-radius: 6px;
+  padding: 10px 12px;
+  text-align: center;
+  font-size: 22px;
+}
+
+.marcacoes-paciente-pagination {
+  margin-top: 26px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.marcacoes-paciente-pagebtn {
+  background: #f4efdf;
+  color: #111;
+  border: 1px solid rgba(155, 123, 58, 0.35);
+  min-width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  font-weight: 900;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.marcacoes-paciente-pagebtn:hover {
+  filter: brightness(0.99);
+}
+
+.marcacoes-paciente-pagebtn:active {
+  transform: translateY(1px);
+}
+
+.marcacoes-paciente-pagebtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.marcacoes-paciente-pagebtn.active {
+  background: #ffffff;
+  outline: 2px solid rgba(167, 154, 87, 0.65);
+}
+
+@media (max-width: 860px) {
+  .marcacoes-paciente-head,
+  .marcacoes-paciente-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .marcacoes-paciente-cell {
+    font-size: 18px;
+  }
 }
 
 @media (max-width: 980px) {

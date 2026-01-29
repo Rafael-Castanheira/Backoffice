@@ -1,0 +1,129 @@
+.md-page {
+  position: relative;
+  padding: 120px 24px 80px;
+  min-height: calc(100vh - 120px);
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.md-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.md-ring {
+  width: 860px;
+  height: 860px;
+  border-radius: 50%;
+  border: 12px solid rgba(155, 123, 58, 0.16);
+  transform: translateX(160px);
+}
+
+.md-inner {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.md-header {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  margin: 18px 0 18px;
+}
+
+.md-back {
+  background: transparent;
+  border: none;
+  color: #8b6b3a;
+  font-size: 56px;
+  font-weight: 900;
+  padding: 0;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.md-back:hover {
+  color: #7a5f32;
+}
+
+.md-title {
+  margin: 0;
+  color: #8b6b3a;
+  font-size: 56px;
+  font-weight: 900;
+}
+
+.md-error {
+  background: #fff3f3;
+  border: 1px solid #f1bcbc;
+  color: #8f2b2b;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin: 10px 0 18px;
+}
+
+.md-card {
+  width: min(620px, 100%);
+  margin: 0 auto;
+  background: #f4efdf;
+  border-radius: 44px;
+  padding: 34px 34px 28px;
+  color: #7a5f32;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.08);
+}
+
+.md-loading {
+  color: #6c5a2e;
+  font-weight: 800;
+  text-align: center;
+  padding: 18px 10px;
+}
+
+.md-line {
+  text-align: center;
+  font-weight: 800;
+  color: rgba(122, 95, 50, 0.95);
+  margin: 12px 0;
+  font-size: 20px;
+}
+
+.md-line--top {
+  font-size: 22px;
+  margin-top: 0;
+}
+
+.md-obs-label {
+  margin-top: 26px;
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(122, 95, 50, 0.9);
+}
+
+.md-obs-box {
+  margin-top: 8px;
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(155, 123, 58, 0.22);
+  border-radius: 16px;
+  padding: 16px 16px;
+  min-height: 110px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #6c5a2e;
+}
+
+@media (max-width: 780px) {
+  .md-title {
+    font-size: 40px;
+  }
+  .md-back {
+    font-size: 44px;
+  }
+  .md-card {
+    border-radius: 34px;
+    padding: 26px 22px 22px;
+  }
+}
