@@ -1,12 +1,11 @@
 const path = require('path');
-const Sequelize = require('sequelize');
 
-// Load environment variables from backend/.env for local development.
-// This keeps dev-scripts that import models working without needing index.js.
+// Load .env from backend/.env for local development.
+// In production, environment variables should be provided by the runtime.
 try {
   require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 } catch (e) {
-  // ignore
+  // ignore; dotenv may not be installed in some environments
 }
 
 function getRequiredEnv(name) {
@@ -27,9 +26,17 @@ function getOptionalNumber(name) {
   return num;
 }
 
-function getDatabaseConfigFromEnv() {
+/**
+ * Returns DB config derived ONLY from process.env.
+ * - If DATABASE_URL is provided, it takes priority.
+ * - Otherwise, DB_NAME/DB_USER/DB_HOST are required.
+ */
+function getDatabaseConfig() {
   if (process.env.DATABASE_URL && String(process.env.DATABASE_URL).trim() !== '') {
-    return { url: process.env.DATABASE_URL };
+    return {
+      url: process.env.DATABASE_URL,
+      logging: false,
+    };
   }
 
   return {
@@ -39,29 +46,10 @@ function getDatabaseConfigFromEnv() {
     host: getRequiredEnv('DB_HOST'),
     port: getOptionalNumber('DB_PORT'),
     dialect: process.env.DB_DIALECT || 'postgres',
+    logging: false,
   };
 }
 
-const dbCfg = getDatabaseConfigFromEnv();
-
-let sequelize;
-if (dbCfg.url) {
-  sequelize = new Sequelize(dbCfg.url, { logging: false });
-} else {
-  sequelize = new Sequelize(dbCfg.name, dbCfg.user, dbCfg.pass, {
-    host: dbCfg.host,
-    port: dbCfg.port,
-    dialect: dbCfg.dialect,
-    logging: false,
-  });
-}
-
-const initModels = require('./init-models');
-const models = initModels(sequelize);
-
-// expose sequelize instances
-models.sequelize = sequelize;
-models.Sequelize = Sequelize;
-
-module.exports = models;
-
+module.exports = {
+  getDatabaseConfig,
+};

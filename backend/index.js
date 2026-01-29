@@ -1,3 +1,13 @@
+const path = require('path');
+
+// Load environment variables from backend/.env for local development.
+// In production, set env vars in the runtime instead of using a .env file.
+try {
+  require('dotenv').config({ path: path.join(__dirname, '.env') });
+} catch (e) {
+  // ignore
+}
+
 const express = require('express');
 const cors = require('cors');
 const db = require('./models');
