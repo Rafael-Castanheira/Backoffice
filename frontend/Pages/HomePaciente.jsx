@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './homepaciente.css';
 
+
 export default function HomePaciente() {
   const navigate = useNavigate();
 

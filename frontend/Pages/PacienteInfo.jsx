@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './pacienteinfo.css';
+const API = import.meta.env.VITE_API_URL;
 
 function formatDatePt(dateLike) {
   if (!dateLike) return '';
@@ -56,11 +57,11 @@ async function fetchJson(url) {
         `${raw}\n${msg}`
       )
     ) {
-      throw new Error(`Não foi possível ligar ao backend para ${url}. Confirma se o backend está a correr em http://127.0.0.1:3001.`);
+      throw new Error(`Não foi possível ligar ao backend para ${url}. Confirma se o backend está a correr em ${API}.`);
     }
 
     if (res.status === 500 && /internal server error/i.test(String(msg)) && url.startsWith('/')) {
-      throw new Error(`Erro ao ligar ao backend para ${url}. Confirma se o backend está a correr em http://127.0.0.1:3001.`);
+      throw new Error(`Erro ao ligar ao backend para ${url}. Confirma se o backend está a correr em ${API}.`);
     }
 
     throw new Error(msg || `Erro ao carregar ${url} (${res.status})`);
@@ -121,18 +122,18 @@ export default function PacienteInfo() {
 
       try {
         let docsErr = '';
-        const pacientePromise = fetchJson(`/paciente/${encodeURIComponent(utenteId)}`);
-        const utilizadoresPromise = fetchJson('/utilizadores');
-        const dependentesPromise = fetchJson('/paciente').catch(() => []);
+        const pacientePromise = fetchJson(`${API}/paciente/${encodeURIComponent(utenteId)}`);
+        const utilizadoresPromise = fetchJson(`${API}/utilizadores`);
+        const dependentesPromise = fetchJson(`${API}/paciente`).catch(() => []);
 
-        const generosPromise = fetchJson('/genero').catch(() => []);
-        const estadosCivisPromise = fetchJson('/estadocivil').catch(() => []);
+        const generosPromise = fetchJson(`${API}/genero`).catch(() => []);
+        const estadosCivisPromise = fetchJson(`${API}/estadocivil`).catch(() => []);
 
-        const habitosPromise = fetchJson(`/habitosestilovida/paciente/${encodeURIComponent(utenteId)}`).catch(() => []);
-        const histDentPromise = fetchJson(`/historicodentario/paciente/${encodeURIComponent(utenteId)}`).catch(() => []);
-        const histMedPromise = fetchJson(`/historicomedico/paciente/${encodeURIComponent(utenteId)}`).catch(() => []);
+        const habitosPromise = fetchJson(`${API}/habitosestilovida/paciente/${encodeURIComponent(utenteId)}`).catch(() => []);
+        const histDentPromise = fetchJson(`${API}/historicodentario/paciente/${encodeURIComponent(utenteId)}`).catch(() => []);
+        const histMedPromise = fetchJson(`${API}/historicomedico/paciente/${encodeURIComponent(utenteId)}`).catch(() => []);
 
-        const docsPromise = fetchJson(`/paciente/${encodeURIComponent(utenteId)}/documentos`).catch((e) => {
+        const docsPromise = fetchJson(`${API}/paciente/${encodeURIComponent(utenteId)}/documentos`).catch((e) => {
           docsErr = e?.message || 'Erro ao carregar documentos.';
           return [];
         });

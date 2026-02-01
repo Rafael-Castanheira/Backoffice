@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './privacy.css';
+const API = import.meta.env.VITE_API_URL;
 
 export default function PrivacyPage() {
   const navigate = useNavigate();

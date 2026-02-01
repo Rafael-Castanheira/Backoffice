@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './marcacoes.css';
+const API = import.meta.env.VITE_API_URL;
 
 function getLoggedUser() {
   try {
@@ -64,7 +65,7 @@ async function fetchJson(url, options = {}) {
       },
     });
   } catch {
-    throw new Error(`Falha ao ligar ao servidor ao carregar ${url}. Confirma se o backend está a correr em http://localhost:3001.`);
+    throw new Error(`Falha ao ligar ao servidor ao carregar ${url}. Confirma se o backend está a correr em ${API}.`);
   }
 
   if (!res.ok) {
@@ -84,10 +85,10 @@ async function fetchJson(url, options = {}) {
       res.status === 500 &&
       /ECONNREFUSED|connect\s+ECONNREFUSED|proxy\s+error|socket\s+hang\s+up|HPE_INVALID|ENOTFOUND/i.test(`${raw}\n${msg}`)
     ) {
-      throw new Error(`Não foi possível ligar ao backend para ${url}. Confirma se o backend está a correr em http://127.0.0.1:3001.`);
+      throw new Error(`Não foi possível ligar ao backend para ${url}. Confirma se o backend está a correr em ${API}.`);
     }
     if (res.status === 500 && /internal server error/i.test(String(msg)) && url.startsWith('/')) {
-      throw new Error(`Erro ao ligar ao backend para ${url}. Confirma se o backend está a correr em http://127.0.0.1:3001.`);
+      throw new Error(`Erro ao ligar ao backend para ${url}. Confirma se o backend está a correr em ${API}.`);
     }
 
     throw new Error(msg || `Erro ao carregar ${url} (${res.status})`);
@@ -173,7 +174,7 @@ function PacienteMarcacoes() {
       }
 
       try {
-        const rows = await fetchJson(`/consulta?numero_utente=${encodeURIComponent(numeroUtente)}`);
+        const rows = await fetchJson(`${API}/consulta?numero_utente=${encodeURIComponent(numeroUtente)}`);
         if (cancelled) return;
         const list = Array.isArray(rows) ? rows : [];
         // Extra safety: filtrar no frontend também.

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './novopaciente.css';
+const API = import.meta.env.VITE_API_URL;
 
 const initialState = {
   nome: '',
@@ -52,8 +53,8 @@ export default function NovoPaciente() {
         const token = localStorage.getItem('token');
         const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
         const [rg, rec] = await Promise.all([
-          fetch('/genero', { headers: { ...authHeaders } }).catch(() => null),
-          fetch('/estadocivil', { headers: { ...authHeaders } }).catch(() => null),
+          fetch(`${API}/genero`, { headers: { ...authHeaders } }).catch(() => null),
+          fetch(`${API}/estadocivil`, { headers: { ...authHeaders } }).catch(() => null),
         ]);
 
         if (rg && rg.ok) {
@@ -121,8 +122,8 @@ export default function NovoPaciente() {
       const needsEstadoLookup = !!String(form.estado_civil || '').trim() && !looksNumericId(form.estado_civil);
 
       const [generos, estadosCivis] = await Promise.all([
-        needsGeneroLookup ? fetchRefList('/genero') : Promise.resolve([]),
-        needsEstadoLookup ? fetchRefList('/estadocivil') : Promise.resolve([]),
+        needsGeneroLookup ? fetchRefList(`${API}/genero`) : Promise.resolve([]),
+        needsEstadoLookup ? fetchRefList(`${API}/estadocivil`) : Promise.resolve([]),
       ]);
 
       const resolveGeneroId = () => {
@@ -183,7 +184,7 @@ export default function NovoPaciente() {
         return null;
       };
 
-      const res = await fetch('/paciente', {
+      const res = await fetch(`${API}/paciente`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify(payload)

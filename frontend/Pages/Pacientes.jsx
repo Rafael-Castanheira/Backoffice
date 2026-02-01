@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './pacientes.css';
+const API = import.meta.env.VITE_API_URL;
 
 const PAGE_SIZE = 7;
 const PACIENTE_TIPO_USER_ID_FALLBACK = 2;
@@ -25,7 +26,7 @@ async function fetchJson(url) {
       },
     });
   } catch {
-    throw new Error(`Falha ao ligar ao servidor ao carregar ${url}. Confirma se o backend está a correr em http://localhost:3001.`);
+    throw new Error(`Falha ao ligar ao servidor ao carregar ${url}. Confirma se o backend está a correr em ${API}.`);
   }
 
   if (!res.ok) {
@@ -50,12 +51,12 @@ async function fetchJson(url) {
         `${raw}\n${msg}`
       )
     ) {
-      throw new Error(`Não foi possível ligar ao backend para ${url}. Confirma se o backend está a correr em http://127.0.0.1:3001.`);
+      throw new Error(`Não foi possível ligar ao backend para ${url}. Confirma se o backend está a correr em ${API}.`);
     }
 
     // Fallback: Vite proxy pode devolver apenas "Internal Server Error" sem detalhes.
     if (res.status === 500 && /internal server error/i.test(String(msg)) && url.startsWith('/')) {
-      throw new Error(`Erro ao ligar ao backend para ${url}. Confirma se o backend está a correr em http://127.0.0.1:3001.`);
+      throw new Error(`Erro ao ligar ao backend para ${url}. Confirma se o backend está a correr em ${API}.`);
     }
 
     throw new Error(msg || `Erro ao carregar ${url} (${res.status})`);
@@ -83,7 +84,7 @@ export default function Pacientes() {
       const token = localStorage.getItem('token');
       const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const res = await fetch(`/paciente/${encodeURIComponent(numeroUtente)}`, {
+      const res = await fetch(`${API}/paciente/${encodeURIComponent(numeroUtente)}`, {
         method: 'DELETE',
         headers: { ...authHeaders },
       });
@@ -119,8 +120,8 @@ export default function Pacientes() {
 
       try {
         const [pacienteRows, utilizadoresRows] = await Promise.all([
-          fetchJson('/paciente'),
-          fetchJson('/utilizadores'),
+          fetchJson(`${API}/paciente`),
+          fetchJson(`${API}/utilizadores`),
         ]);
 
         const tipoPacienteId = PACIENTE_TIPO_USER_ID_FALLBACK;

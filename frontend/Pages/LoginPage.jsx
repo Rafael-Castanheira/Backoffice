@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './login.css';
+const API = import.meta.env.VITE_API_URL;
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -39,9 +40,9 @@ const LoginPage = () => {
     if (!validate()) return;
     setLoading(true);
     try {
-      console.log('Fetching URL: /auth/login');
+      console.log(`Fetching URL: ${API}/auth/login`);
       const identifier = String(email || '').trim();
-      const res = await fetch('/auth/login', {
+      const res = await fetch(`${API}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: identifier, password })

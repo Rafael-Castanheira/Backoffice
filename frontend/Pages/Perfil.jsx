@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import './perfil.css';
+const API = import.meta.env.VITE_API_URL;
 
 function formatDatePt(dateLike) {
   if (!dateLike) return '';
@@ -22,7 +23,7 @@ async function fetchJson(url) {
       },
     });
   } catch {
-    throw new Error('Falha ao ligar ao servidor.');
+    throw new Error(`Falha ao ligar ao servidor. Confirma se o backend está a correr em ${API}.`);
   }
 
   if (!res.ok) {

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './marcacaoDetalhe.css';
+const API = import.meta.env.VITE_API_URL;
 
 function getLoggedUser() {
   try {
@@ -27,7 +28,7 @@ async function fetchJson(url, options = {}) {
       },
     });
   } catch {
-    throw new Error(`Falha ao ligar ao servidor ao carregar ${url}. Confirma se o backend está a correr em http://localhost:3001.`);
+    throw new Error(`Falha ao ligar ao servidor ao carregar ${url}. Confirma se o backend está a correr em ${API}.`);
   }
 
   if (!res.ok) {
@@ -106,7 +107,7 @@ export default function MarcacaoDetalhe() {
       }
 
       try {
-        const row = await fetchJson(`/consulta/${encodeURIComponent(id)}`);
+        const row = await fetchJson(`${API}/consulta/${encodeURIComponent(id)}`);
         if (cancelled) return;
 
         // Segurança básica no frontend: um paciente só vê as suas consultas.
