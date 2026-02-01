@@ -4,9 +4,6 @@ import './perfil.css';
 
 const API = import.meta.env.VITE_API_URL;
 
-/**
- * Normalizes the URL to prevent double slashes or missing slashes
- */
 function getFullUrl(endpoint) {
   const base = API.endsWith('/') ? API.slice(0, -1) : API;
   const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
