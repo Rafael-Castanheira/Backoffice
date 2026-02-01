@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import './Footer.css';
 
 function IconPin(props) {
@@ -57,6 +57,8 @@ function IconFacebook(props) {
 }
 
 export default function Footer() {
+  const location = useLocation();
+
   return (
     <footer className="site-footer" role="contentinfo">
       <div className="site-footer-inner">
@@ -102,7 +104,7 @@ export default function Footer() {
 
         <div className="site-footer-col site-footer-col--legal">
           <div className="site-footer-title">Informação Legal</div>
-          <Link className="site-footer-link" to="/privacy">Politica de Privacidade</Link>
+          <Link className="site-footer-link" to="/privacy" state={{ from: location.pathname }}>Politica de Privacidade</Link>
           <a
             className="site-footer-link"
             href="https://www.livroreclamacoes.pt/Inicio/"

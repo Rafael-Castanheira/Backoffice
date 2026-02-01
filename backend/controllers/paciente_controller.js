@@ -2,11 +2,53 @@ const db = require('../models');
 
 const model = db.paciente;
 
+function isAdminUser(user) {
+  const userType = String(user?.id_tipo_user || '');
+  return userType === '1' || String(user?.email || '').toLowerCase() === 'admin@local';
+}
+
+async function canAccessPatient(user, utenteId) {
+  if (!user) return false;
+  if (isAdminUser(user)) return true;
+
+  const userUtente = String(user?.numero_utente || '').trim();
+  const targetUtente = String(utenteId || '').trim();
+  if (!userUtente || !targetUtente) return false;
+  if (userUtente === targetUtente) return true;
+
+  try {
+    const dep = await model.findOne({
+      where: { numero_utente: targetUtente, pac_numero_utente: userUtente },
+      attributes: ['numero_utente'],
+    });
+    return !!dep;
+  } catch {
+    return false;
+  }
+}
+
 const getPk = (m) => (m && m.primaryKeyAttributes && m.primaryKeyAttributes[0]) || 'id';
 
 exports.findAll = async (req, res) => {
   try {
-    const items = await model.findAll();
+    if (!req.user) return res.status(401).json({ message: 'Não autenticado.' });
+
+    const user = req.user;
+    const userUtente = String(user?.numero_utente || '').trim();
+
+    let items;
+    if (isAdminUser(user)) {
+      items = await model.findAll();
+    } else if (userUtente) {
+      items = await model.findAll({
+        where: {
+          [db.Sequelize.Op.or]: [{ numero_utente: userUtente }, { pac_numero_utente: userUtente }],
+        },
+      });
+    } else {
+      items = [];
+    }
+
     res.json(items);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -15,6 +57,11 @@ exports.findAll = async (req, res) => {
 
 exports.findOne = async (req, res) => {
   try {
+    if (!req.user) return res.status(401).json({ message: 'Não autenticado.' });
+    if (!(await canAccessPatient(req.user, req.params.id))) {
+      return res.status(403).json({ message: 'Sem permissões.' });
+    }
+
     const item = await model.findByPk(req.params.id, {
       include: [
         {

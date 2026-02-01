@@ -84,7 +84,15 @@ async function createAdminUserIfNotFound() {
         id_user: 9999, // Using a high, fixed ID is safer than MAX() during startup
         nome: 'Admin User',
         email: 'admin@local',
-        password_hash: 'adminpass', // Password shortened to fit schema (STRING(12))
+        // Default password is 'adminpass'. Stored as bcrypt if schema supports it.
+        password_hash: (() => {
+          try {
+            const bcrypt = require('bcryptjs');
+            return bcrypt.hashSync('adminpass', 10);
+          } catch {
+            return 'adminpass';
+          }
+        })(),
         id_tipo_user: adminUserType.id_tipo_user,
         data_criacao: new Date(),
       },
@@ -246,8 +254,9 @@ async function start() {
     if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
       try {
         const { execSync } = require('child_process');
+        const scriptPath = path.join(__dirname, 'dev-scripts', 'create-tables-and-fks.js');
         console.log('🔧 Ambiente de desenvolvimento detectado — executando script de criação de tabelas (dev-scripts/create-tables-and-fks.js)');
-        execSync('node dev-scripts/create-tables-and-fks.js', { stdio: 'inherit' });
+        execSync(`node "${scriptPath}"`, { stdio: 'inherit', cwd: __dirname });
       } catch (e) {
         console.error('⚠️ Falha ao executar script de criação de tabelas (continuando):', e.message || e);
       }
@@ -260,6 +269,24 @@ async function start() {
     try {
       const qi = db.sequelize.getQueryInterface();
       const cols = await qi.describeTable('utilizadores');
+
+      // Ensure password_hash can store bcrypt hashes (≈60 chars).
+      // Some earlier schemas used VARCHAR(12). We upgrade in-place for dev convenience.
+      try {
+        const t = String(cols.password_hash?.type || '');
+        const m = t.match(/\b(?:character varying|varchar)\((\d+)\)/i);
+        const len = m ? Number(m[1]) : null;
+        if (len && len < 60) {
+          await qi.changeColumn('utilizadores', 'password_hash', {
+            type: Sequelize.STRING(255),
+            allowNull: true,
+          });
+          console.log('🔧 Coluna utilizadores.password_hash expandida para suportar bcrypt.');
+        }
+      } catch (e) {
+        console.error('⚠️ Falha ao atualizar schema de utilizadores.password_hash (continuando):', e.message || e);
+      }
+
       if (!cols.data_criacao) {
         await qi.addColumn('utilizadores', 'data_criacao', {
           type: Sequelize.DATEONLY,

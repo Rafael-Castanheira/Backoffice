@@ -1,9 +1,26 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './privacy.css';
 
 export default function PrivacyPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleAccept = () => {
+    const from = location.state?.from;
+    if (from && typeof from === 'string') {
+      navigate(from, { replace: true });
+      return;
+    }
+
+    // Fallback: go back if possible, otherwise go to login
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate('/login', { replace: true });
+  };
 
   return (
     <div className="privacy-page">
@@ -80,7 +97,7 @@ export default function PrivacyPage() {
           </div>
         </div>
 
-        <button type="button" className="privacy-accept" onClick={() => navigate('/login')}>Concordo</button>
+        <button type="button" className="privacy-accept" onClick={handleAccept}>Concordo</button>
       </div>
     </div>
   );

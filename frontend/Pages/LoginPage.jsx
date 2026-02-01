@@ -100,8 +100,7 @@ const LoginPage = () => {
           <button type="submit" className="login-button" disabled={loading}>{loading ? 'Entrando...' : 'ENTRAR'}</button>
 
           <div className="login-links">
-            <a onClick={() => navigate('/privacy')} className="small-link">política de privacidade</a>
-            <a onClick={() => navigate('/forgot-password')} className="small-link">esqueceu-se da palavra-passe?</a>
+            <a onClick={() => navigate('/privacy', { state: { from: '/login' } })} className="small-link">política de privacidade</a>
           </div>
 
           {error && <div className="login-error">{error}</div>}

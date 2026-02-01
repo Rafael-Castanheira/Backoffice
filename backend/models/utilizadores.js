@@ -37,7 +37,8 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true
     },
     password_hash: {
-      type: DataTypes.STRING(12),
+      // Increased to support bcrypt hashes (≈60 chars) and future improvements.
+      type: DataTypes.STRING(255),
       allowNull: true
     },
     data_criacao: {

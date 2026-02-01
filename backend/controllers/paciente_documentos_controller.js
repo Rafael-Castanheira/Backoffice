@@ -1,8 +1,35 @@
 const path = require('path');
 const fs = require('fs/promises');
 const fsSync = require('fs');
+const db = require('../models');
 
 const ROOT_DIR = path.join(__dirname, '..', 'uploads', 'paciente-pdfs');
+
+function isAdminUser(user) {
+  const userType = String(user?.id_tipo_user || '');
+  return userType === '1' || String(user?.email || '').toLowerCase() === 'admin@local';
+}
+
+async function canAccessPatient(user, utenteId) {
+  if (!user) return false;
+  if (isAdminUser(user)) return true;
+
+  const userUtente = String(user?.numero_utente || '').trim();
+  const targetUtente = String(utenteId || '').trim();
+  if (!userUtente || !targetUtente) return false;
+  if (userUtente === targetUtente) return true;
+
+  // Allow a patient to access their dependents' documents.
+  try {
+    const dep = await db.paciente.findOne({
+      where: { numero_utente: targetUtente, pac_numero_utente: userUtente },
+      attributes: ['numero_utente'],
+    });
+    return !!dep;
+  } catch {
+    return false;
+  }
+}
 
 function patientDir(utenteId) {
   return path.join(ROOT_DIR, String(utenteId));
@@ -40,6 +67,10 @@ async function writeIndex(utenteId, items) {
 exports.list = async (req, res) => {
   try {
     const utenteId = req.params.id;
+
+    if (!req.user) return res.status(401).json({ message: 'Não autenticado.' });
+    if (!(await canAccessPatient(req.user, utenteId))) return res.status(403).json({ message: 'Sem permissões.' });
+
     const items = await readIndex(utenteId);
     items.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
     res.json(items);
@@ -52,6 +83,16 @@ exports.upload = async (req, res) => {
   const utenteId = req.params.id;
 
   try {
+    if (!req.user) {
+      if (req.file?.path) await fs.unlink(req.file.path).catch(() => {});
+      return res.status(401).json({ message: 'Não autenticado.' });
+    }
+
+    if (!isAdminUser(req.user)) {
+      if (req.file?.path) await fs.unlink(req.file.path).catch(() => {});
+      return res.status(403).json({ message: 'Sem permissões.' });
+    }
+
     if (!req.file) return res.status(400).json({ message: 'Ficheiro em falta.' });
 
     const isPdf =
@@ -99,6 +140,9 @@ exports.download = async (req, res) => {
     const utenteId = req.params.id;
     const docId = req.params.docId;
 
+    if (!req.user) return res.status(401).json({ message: 'Não autenticado.' });
+    if (!(await canAccessPatient(req.user, utenteId))) return res.status(403).json({ message: 'Sem permissões.' });
+
     const items = await readIndex(utenteId);
     const entry = items.find((x) => String(x.id) === String(docId));
     if (!entry) return res.status(404).json({ message: 'Documento não encontrado.' });
@@ -116,6 +160,9 @@ exports.delete = async (req, res) => {
   try {
     const utenteId = req.params.id;
     const docId = req.params.docId;
+
+    if (!req.user) return res.status(401).json({ message: 'Não autenticado.' });
+    if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Sem permissões.' });
 
     const items = await readIndex(utenteId);
     const idx = items.findIndex((x) => String(x.id) === String(docId));

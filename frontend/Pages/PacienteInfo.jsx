@@ -83,6 +83,16 @@ export default function PacienteInfo() {
   const navigate = useNavigate();
   const { utenteId } = useParams();
 
+  const isAdmin = (() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || 'null');
+      const userType = String(u?.id_tipo_user || '');
+      return userType === '1' || String(u?.email || '').toLowerCase() === 'admin@local';
+    } catch {
+      return false;
+    }
+  })();
+
   const fileInputRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
@@ -402,36 +412,40 @@ export default function PacienteInfo() {
           </button>
           <h1 className="pi-title">{headerName}</h1>
           <div className="pi-utenteWrap">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/pdf,.pdf"
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                e.target.value = '';
-                if (file) uploadPdf(file);
-              }}
-            />
-            <button
-              type="button"
-              className="pi-uploadBtn"
-              disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
-              title="Carregar PDF para este paciente"
-              aria-label="Carregar PDF"
-            >
-              {uploading ? (
-                <span className="pi-uploadSpinner" aria-hidden="true" />
-              ) : (
-                <svg className="pi-uploadIcon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
-                  <path
-                    fill="currentColor"
-                    d="M5 20h14v-2H5v2zM12 2l-5.5 5.5 1.41 1.41L11 5.83V16h2V5.83l3.09 3.09 1.41-1.41L12 2z"
-                  />
-                </svg>
-              )}
-            </button>
+            {isAdmin ? (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    if (file) uploadPdf(file);
+                  }}
+                />
+                <button
+                  type="button"
+                  className="pi-uploadBtn"
+                  disabled={uploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Carregar PDF para este paciente"
+                  aria-label="Carregar PDF"
+                >
+                  {uploading ? (
+                    <span className="pi-uploadSpinner" aria-hidden="true" />
+                  ) : (
+                    <svg className="pi-uploadIcon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+                      <path
+                        fill="currentColor"
+                        d="M5 20h14v-2H5v2zM12 2l-5.5 5.5 1.41 1.41L11 5.83V16h2V5.83l3.09 3.09 1.41-1.41L12 2z"
+                      />
+                    </svg>
+                  )}
+                </button>
+              </>
+            ) : null}
             <div className="pi-utente">NIF: {paciente?.nif || utenteId}</div>
           </div>
         </div>
@@ -609,20 +623,22 @@ export default function PacienteInfo() {
                         <span className="pi-docName">{d.originalName || 'documento.pdf'}</span>
                         <span className="pi-docMeta">{d.uploadedAt ? new Date(d.uploadedAt).toLocaleDateString('pt-PT') : ''}</span>
                       </button>
-                      <button
-                        type="button"
-                        className="pi-docDel"
-                        title="Eliminar PDF"
-                        aria-label="Eliminar PDF"
-                        onClick={() => deleteDoc(d)}
-                      >
-                        <svg className="pi-docTrashIcon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
-                          <path
-                            fill="currentColor"
-                            d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zM7 9h2v9H7V9zm1 13h8a2 2 0 0 0 2-2V7H6v13a2 2 0 0 0 2 2z"
-                          />
-                        </svg>
-                      </button>
+                      {isAdmin ? (
+                        <button
+                          type="button"
+                          className="pi-docDel"
+                          title="Eliminar PDF"
+                          aria-label="Eliminar PDF"
+                          onClick={() => deleteDoc(d)}
+                        >
+                          <svg className="pi-docTrashIcon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+                            <path
+                              fill="currentColor"
+                              d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zM7 9h2v9H7V9zm1 13h8a2 2 0 0 0 2-2V7H6v13a2 2 0 0 0 2 2z"
+                            />
+                          </svg>
+                        </button>
+                      ) : null}
                     </div>
                   ))}
                 </div>

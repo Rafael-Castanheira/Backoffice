@@ -70,6 +70,7 @@ export default function Pacientes() {
   const [error, setError] = useState('');
   const [pacientes, setPacientes] = useState([]);
   const [page, setPage] = useState(1);
+  const [searchUtente, setSearchUtente] = useState('');
 
   const deletePaciente = async (numeroUtente, nome) => {
     if (!numeroUtente) return;
@@ -165,12 +166,24 @@ export default function Pacientes() {
     };
   }, []);
 
-  const totalPages = Math.max(1, Math.ceil(pacientes.length / PAGE_SIZE));
+  const filteredPacientes = useMemo(() => {
+    const raw = String(searchUtente || '').trim();
+    const needle = raw.replace(/\D/g, '');
+    if (!needle) return pacientes;
+
+    return (Array.isArray(pacientes) ? pacientes : []).filter((p) => String(p?.numero_utente || '').includes(needle));
+  }, [pacientes, searchUtente]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredPacientes.length / PAGE_SIZE));
 
   const pageItems = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE;
-    return pacientes.slice(start, start + PAGE_SIZE);
-  }, [pacientes, page]);
+    return filteredPacientes.slice(start, start + PAGE_SIZE);
+  }, [filteredPacientes, page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchUtente]);
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
@@ -185,9 +198,23 @@ export default function Pacientes() {
       <div className="pacientes-inner">
         <div className="pacientes-title-row">
           <h1 className="pacientes-title">Lista de Pacientes</h1>
-          <button type="button" className="pacientes-add" onClick={() => navigate('/paciente/novo')}>
-            Adicionar+
-          </button>
+          <div className="pacientes-actionsRow">
+            <div className="pacientes-search">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                className="pacientes-searchInput"
+                placeholder="Pesquisar nif"
+                value={searchUtente}
+                onChange={(e) => setSearchUtente(e.target.value)}
+                aria-label="Pesquisar paciente pelo número de utente"
+              />
+            </div>
+            <button type="button" className="pacientes-add" onClick={() => navigate('/paciente/novo')}>
+              Adicionar+
+            </button>
+          </div>
         </div>
 
         {error && <div className="pacientes-error">{error}</div>}

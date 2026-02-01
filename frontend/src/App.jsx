@@ -49,6 +49,7 @@ function App() {
         <Route path="/home" element={<RequireAuth><HomePaciente /></RequireAuth>} />
         <Route path="/contactos" element={<RequireAuth><Contactos /></RequireAuth>} />
         <Route path="/perfil" element={<RequireAuth><Perfil /></RequireAuth>} />
+        <Route path="/perfil/:utenteId" element={<RequireAuth><Perfil /></RequireAuth>} />
 
         <Route path="/marcacoes" element={<RequireAuth><Marcacoes /></RequireAuth>} />
         <Route path="/marcacoes/:consultaId" element={<RequireAuth><MarcacaoDetalhe /></RequireAuth>} />

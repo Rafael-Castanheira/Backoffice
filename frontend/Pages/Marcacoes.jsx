@@ -509,10 +509,10 @@ function AdminMarcacoes() {
       return;
     }
     const endMin = startMin + dur;
-    const OPEN = 9 * 60;
+    const OPEN = 9 * 60 + 30;
     const CLOSE = 19 * 60;
     if (startMin < OPEN || endMin > CLOSE) {
-      setError('Horário inválido: só é possível marcar entre as 09:00 e as 19:00.');
+      setError('Horário inválido: só é possível marcar entre as 09:30 e as 19:00.');
       return;
     }
 
@@ -708,7 +708,7 @@ function AdminMarcacoes() {
                   <span>Hora</span>
                   <input
                     type="time"
-                    min="09:00"
+                    min="09:30"
                     max="19:00"
                     value={form.hora_consulta}
                     onChange={(e) => setForm((f) => ({ ...f, hora_consulta: e.target.value }))}

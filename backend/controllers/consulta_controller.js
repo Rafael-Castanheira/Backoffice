@@ -5,7 +5,7 @@ const model = db.consulta;
 const STATUS_PENDENTE = 1;
 const STATUS_CONFIRMADO = 2;
 
-const CLINIC_OPEN_MIN = 9 * 60;  // 09:00
+const CLINIC_OPEN_MIN = 9 * 60 + 30;  // 09:30
 const CLINIC_CLOSE_MIN = 19 * 60; // 19:00
 
 const getPk = (m) => (m && m.primaryKeyAttributes && m.primaryKeyAttributes[0]) || 'id';
@@ -54,7 +54,7 @@ function assertWithinClinicHours({ hora_consulta, duracao_min }) {
 
     const endMin = startMin + duration;
     if (startMin < CLINIC_OPEN_MIN || endMin > CLINIC_CLOSE_MIN) {
-        throw new Error('Horário inválido: a clínica funciona apenas entre as 09:00 e as 19:00.');
+        throw new Error('Horário inválido: a clínica funciona apenas entre as 09:30 e as 19:00.');
     }
 }
 
