@@ -1,7 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './marcacoes.css';
+
 const API = import.meta.env.VITE_API_URL;
+
+/**
+ * Normalizes the URL to prevent double slashes or missing slashes
+ */
+function getFullUrl(endpoint) {
+  const base = API.endsWith('/') ? API.slice(0, -1) : API;
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${base}${path}`;
+}
 
 function getLoggedUser() {
   try {
@@ -53,8 +63,10 @@ function parseTimeToMinutes(time) {
   return Number(m[1]) * 60 + Number(m[2]);
 }
 
-async function fetchJson(url, options = {}) {
+async function fetchJson(endpoint, options = {}) {
   const token = localStorage.getItem('token');
+  const url = getFullUrl(endpoint);
+
   let res;
   try {
     res = await fetch(url, {
@@ -65,7 +77,7 @@ async function fetchJson(url, options = {}) {
       },
     });
   } catch {
-    throw new Error(`Falha ao ligar ao servidor ao carregar ${url}. Confirma se o backend está a correr em ${API}.`);
+    throw new Error(`Falha ao ligar ao servidor ao carregar ${endpoint}. Confirma se o backend está a correr em ${API}.`);
   }
 
   if (!res.ok) {
@@ -85,13 +97,13 @@ async function fetchJson(url, options = {}) {
       res.status === 500 &&
       /ECONNREFUSED|connect\s+ECONNREFUSED|proxy\s+error|socket\s+hang\s+up|HPE_INVALID|ENOTFOUND/i.test(`${raw}\n${msg}`)
     ) {
-      throw new Error(`Não foi possível ligar ao backend para ${url}. Confirma se o backend está a correr em ${API}.`);
+      throw new Error(`Não foi possível ligar ao backend para ${endpoint}. Confirma se o backend está a correr em ${API}.`);
     }
     if (res.status === 500 && /internal server error/i.test(String(msg)) && url.startsWith('/')) {
-      throw new Error(`Erro ao ligar ao backend para ${url}. Confirma se o backend está a correr em ${API}.`);
+      throw new Error(`Erro ao ligar ao backend para ${endpoint}. Confirma se o backend está a correr em ${API}.`);
     }
 
-    throw new Error(msg || `Erro ao carregar ${url} (${res.status})`);
+    throw new Error(msg || `Erro ao carregar ${endpoint} (${res.status})`);
   }
 
   if (res.status === 204) return null;
@@ -174,7 +186,8 @@ function PacienteMarcacoes() {
       }
 
       try {
-        const rows = await fetchJson(`${API}/consulta?numero_utente=${encodeURIComponent(numeroUtente)}`);
+        // Updated to use relative path (fetchJson handles the API url now)
+        const rows = await fetchJson(`/consulta?numero_utente=${encodeURIComponent(numeroUtente)}`);
         if (cancelled) return;
         const list = Array.isArray(rows) ? rows : [];
         // Extra safety: filtrar no frontend também.

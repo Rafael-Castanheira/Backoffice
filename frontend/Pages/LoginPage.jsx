@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './login.css';
+
 const API = import.meta.env.VITE_API_URL;
+
+/**
+ * Normalizes the URL to prevent double slashes or missing slashes
+ */
+function getFullUrl(endpoint) {
+  const base = API.endsWith('/') ? API.slice(0, -1) : API;
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${base}${path}`;
+}
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -39,18 +49,24 @@ const LoginPage = () => {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
+    
     try {
-      console.log(`Fetching URL: ${API}/auth/login`);
+      const url = getFullUrl('/auth/login');
+      console.log(`Fetching URL: ${url}`);
+      
       const identifier = String(email || '').trim();
-      const res = await fetch(`${API}/auth/login`, {
+      
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: identifier, password })
       });
+
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.message || 'Erro no login');
       }
+
       const data = await res.json();
       if (data.token) localStorage.setItem('token', data.token);
       if (data.user) localStorage.setItem('user', JSON.stringify(data.user));

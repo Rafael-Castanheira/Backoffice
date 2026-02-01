@@ -1,6 +1,7 @@
 import React from 'react';
 import './contactos.css';
 
+
 export default function Contactos() {
   const address = 'Av. Dr. Adriano Figueiredo 158, 3460-009 Tondela';
   const placeQuery = `Clinimolelos, Lda, ${address}`;

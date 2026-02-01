@@ -1,7 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './marcacaoDetalhe.css';
+
 const API = import.meta.env.VITE_API_URL;
+
+/**
+ * Normalizes the URL to prevent double slashes or missing slashes
+ */
+function getFullUrl(endpoint) {
+  const base = API.endsWith('/') ? API.slice(0, -1) : API;
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${base}${path}`;
+}
 
 function getLoggedUser() {
   try {
@@ -16,8 +26,10 @@ function isAdminUser(user) {
   return userType === '1' || String(user?.email || '').toLowerCase() === 'admin@local';
 }
 
-async function fetchJson(url, options = {}) {
+async function fetchJson(endpoint, options = {}) {
   const token = localStorage.getItem('token');
+  const url = getFullUrl(endpoint);
+
   let res;
   try {
     res = await fetch(url, {
@@ -28,7 +40,7 @@ async function fetchJson(url, options = {}) {
       },
     });
   } catch {
-    throw new Error(`Falha ao ligar ao servidor ao carregar ${url}. Confirma se o backend está a correr em ${API}.`);
+    throw new Error(`Falha ao ligar ao servidor ao carregar ${endpoint}. Confirma se o backend está a correr em ${API}.`);
   }
 
   if (!res.ok) {
@@ -44,7 +56,7 @@ async function fetchJson(url, options = {}) {
     }
 
     const msg = data?.message || data?.error || '';
-    throw new Error(msg || `Erro ao carregar ${url} (${res.status})`);
+    throw new Error(msg || `Erro ao carregar ${endpoint} (${res.status})`);
   }
 
   if (res.status === 204) return null;
@@ -107,7 +119,8 @@ export default function MarcacaoDetalhe() {
       }
 
       try {
-        const row = await fetchJson(`${API}/consulta/${encodeURIComponent(id)}`);
+        // Updated to use relative path; fetchJson handles the full URL now
+        const row = await fetchJson(`/consulta/${encodeURIComponent(id)}`);
         if (cancelled) return;
 
         // Segurança básica no frontend: um paciente só vê as suas consultas.

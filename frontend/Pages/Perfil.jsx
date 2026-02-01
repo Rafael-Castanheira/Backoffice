@@ -1,7 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import './perfil.css';
+
 const API = import.meta.env.VITE_API_URL;
+
+/**
+ * Normalizes the URL to prevent double slashes or missing slashes
+ */
+function getFullUrl(endpoint) {
+  const base = API.endsWith('/') ? API.slice(0, -1) : API;
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${base}${path}`;
+}
 
 function formatDatePt(dateLike) {
   if (!dateLike) return '';
@@ -13,8 +23,10 @@ function formatDatePt(dateLike) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
-async function fetchJson(url) {
+async function fetchJson(endpoint) {
   const token = localStorage.getItem('token');
+  const url = getFullUrl(endpoint);
+
   let res;
   try {
     res = await fetch(url, {
@@ -198,9 +210,11 @@ export default function Perfil() {
     setDocsError('');
 
     const token = localStorage.getItem('token');
+    const url = getFullUrl(`/paciente/${encodeURIComponent(viewUtenteId)}/documentos/${encodeURIComponent(doc.id)}`);
+
     let res;
     try {
-      res = await fetch(`/paciente/${encodeURIComponent(viewUtenteId)}/documentos/${encodeURIComponent(doc.id)}`, {
+      res = await fetch(url, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
@@ -224,14 +238,14 @@ export default function Perfil() {
     }
 
     const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
+    const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
+    a.href = blobUrl;
     a.download = doc?.originalName || 'documento.pdf';
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(blobUrl);
   }
 
   async function submitPasswordChange(e) {
@@ -257,8 +271,10 @@ export default function Perfil() {
     }
 
     const token = localStorage.getItem('token');
+    const url = getFullUrl('/auth/change-password');
+
     try {
-      const res = await fetch('/auth/change-password', {
+      const res = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

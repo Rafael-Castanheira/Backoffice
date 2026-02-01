@@ -1,10 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './pacientes.css';
-const API = import.meta.env.VITE_API_URL;
 
+const API = import.meta.env.VITE_API_URL;
 const PAGE_SIZE = 7;
 const PACIENTE_TIPO_USER_ID_FALLBACK = 2;
+
+/**
+ * Normalizes the URL to prevent double slashes or missing slashes
+ */
+function getFullUrl(endpoint) {
+  const base = API.endsWith('/') ? API.slice(0, -1) : API;
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${base}${path}`;
+}
 
 function formatDatePt(dateLike) {
   if (!dateLike) return '';
@@ -16,17 +25,21 @@ function formatDatePt(dateLike) {
   return `${dd} / ${mm} / ${yy}`;
 }
 
-async function fetchJson(url) {
+async function fetchJson(endpoint, options = {}) {
   const token = localStorage.getItem('token');
+  const url = getFullUrl(endpoint);
+
   let res;
   try {
     res = await fetch(url, {
+      ...options,
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
       },
     });
   } catch {
-    throw new Error(`Falha ao ligar ao servidor ao carregar ${url}. Confirma se o backend está a correr em ${API}.`);
+    throw new Error(`Falha ao ligar ao servidor ao carregar ${endpoint}. Confirma se o backend está a correr em ${API}.`);
   }
 
   if (!res.ok) {
@@ -44,22 +57,21 @@ async function fetchJson(url) {
     const msg = data?.message || data?.error || '';
 
     // Quando o backend não está a correr, o Vite proxy tende a devolver 500 com um corpo de erro.
-    // Em algumas versões, vem em JSON com { error: "Internal Server Error" }.
     if (
       res.status === 500 &&
       /ECONNREFUSED|connect\s+ECONNREFUSED|proxy\s+error|socket\s+hang\s+up|HPE_INVALID|ENOTFOUND/i.test(
         `${raw}\n${msg}`
       )
     ) {
-      throw new Error(`Não foi possível ligar ao backend para ${url}. Confirma se o backend está a correr em ${API}.`);
+      throw new Error(`Não foi possível ligar ao backend para ${endpoint}. Confirma se o backend está a correr em ${API}.`);
     }
 
     // Fallback: Vite proxy pode devolver apenas "Internal Server Error" sem detalhes.
-    if (res.status === 500 && /internal server error/i.test(String(msg)) && url.startsWith('/')) {
-      throw new Error(`Erro ao ligar ao backend para ${url}. Confirma se o backend está a correr em ${API}.`);
+    if (res.status === 500 && /internal server error/i.test(String(msg))) {
+      throw new Error(`Erro ao ligar ao backend para ${endpoint}. Confirma se o backend está a correr em ${API}.`);
     }
 
-    throw new Error(msg || `Erro ao carregar ${url} (${res.status})`);
+    throw new Error(msg || `Erro ao carregar ${endpoint} (${res.status})`);
   }
 
   return res.json();
@@ -83,8 +95,9 @@ export default function Pacientes() {
     try {
       const token = localStorage.getItem('token');
       const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+      const url = getFullUrl(`/paciente/${encodeURIComponent(numeroUtente)}`);
 
-      const res = await fetch(`${API}/paciente/${encodeURIComponent(numeroUtente)}`, {
+      const res = await fetch(url, {
         method: 'DELETE',
         headers: { ...authHeaders },
       });
@@ -119,9 +132,10 @@ export default function Pacientes() {
       setError('');
 
       try {
+        // Updated to use relative paths; fetchJson handles the full URL via getFullUrl
         const [pacienteRows, utilizadoresRows] = await Promise.all([
-          fetchJson(`${API}/paciente`),
-          fetchJson(`${API}/utilizadores`),
+          fetchJson('/paciente'),
+          fetchJson('/utilizadores'),
         ]);
 
         const tipoPacienteId = PACIENTE_TIPO_USER_ID_FALLBACK;

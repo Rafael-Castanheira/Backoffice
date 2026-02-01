@@ -1,7 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './pacienteinfo.css';
+
 const API = import.meta.env.VITE_API_URL;
+
+/**
+ * Normalizes the URL to prevent double slashes or missing slashes
+ */
+function getFullUrl(endpoint) {
+  const base = API.endsWith('/') ? API.slice(0, -1) : API;
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${base}${path}`;
+}
 
 function formatDatePt(dateLike) {
   if (!dateLike) return '';
@@ -25,17 +35,21 @@ function showValue(v) {
   return s.trim() ? s : '-';
 }
 
-async function fetchJson(url) {
+async function fetchJson(endpoint, options = {}) {
   const token = localStorage.getItem('token');
+  const url = getFullUrl(endpoint);
+
   let res;
   try {
     res = await fetch(url, {
+      ...options,
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
       },
     });
   } catch {
-    throw new Error(`Falha ao ligar ao servidor ao carregar ${url}.`);
+    throw new Error(`Falha ao ligar ao servidor ao carregar ${endpoint}.`);
   }
 
   if (!res.ok) {
@@ -57,14 +71,14 @@ async function fetchJson(url) {
         `${raw}\n${msg}`
       )
     ) {
-      throw new Error(`Não foi possível ligar ao backend para ${url}. Confirma se o backend está a correr em ${API}.`);
+      throw new Error(`Não foi possível ligar ao backend para ${endpoint}. Confirma se o backend está a correr em ${API}.`);
     }
 
-    if (res.status === 500 && /internal server error/i.test(String(msg)) && url.startsWith('/')) {
-      throw new Error(`Erro ao ligar ao backend para ${url}. Confirma se o backend está a correr em ${API}.`);
+    if (res.status === 500 && /internal server error/i.test(String(msg))) {
+      throw new Error(`Erro ao ligar ao backend para ${endpoint}. Confirma se o backend está a correr em ${API}.`);
     }
 
-    throw new Error(msg || `Erro ao carregar ${url} (${res.status})`);
+    throw new Error(msg || `Erro ao carregar ${endpoint} (${res.status})`);
   }
   return res.json();
 }
@@ -122,18 +136,19 @@ export default function PacienteInfo() {
 
       try {
         let docsErr = '';
-        const pacientePromise = fetchJson(`${API}/paciente/${encodeURIComponent(utenteId)}`);
-        const utilizadoresPromise = fetchJson(`${API}/utilizadores`);
-        const dependentesPromise = fetchJson(`${API}/paciente`).catch(() => []);
+        // Updated to use relative paths with fetchJson
+        const pacientePromise = fetchJson(`/paciente/${encodeURIComponent(utenteId)}`);
+        const utilizadoresPromise = fetchJson('/utilizadores');
+        const dependentesPromise = fetchJson('/paciente').catch(() => []);
 
-        const generosPromise = fetchJson(`${API}/genero`).catch(() => []);
-        const estadosCivisPromise = fetchJson(`${API}/estadocivil`).catch(() => []);
+        const generosPromise = fetchJson('/genero').catch(() => []);
+        const estadosCivisPromise = fetchJson('/estadocivil').catch(() => []);
 
-        const habitosPromise = fetchJson(`${API}/habitosestilovida/paciente/${encodeURIComponent(utenteId)}`).catch(() => []);
-        const histDentPromise = fetchJson(`${API}/historicodentario/paciente/${encodeURIComponent(utenteId)}`).catch(() => []);
-        const histMedPromise = fetchJson(`${API}/historicomedico/paciente/${encodeURIComponent(utenteId)}`).catch(() => []);
+        const habitosPromise = fetchJson(`/habitosestilovida/paciente/${encodeURIComponent(utenteId)}`).catch(() => []);
+        const histDentPromise = fetchJson(`/historicodentario/paciente/${encodeURIComponent(utenteId)}`).catch(() => []);
+        const histMedPromise = fetchJson(`/historicomedico/paciente/${encodeURIComponent(utenteId)}`).catch(() => []);
 
-        const docsPromise = fetchJson(`${API}/paciente/${encodeURIComponent(utenteId)}/documentos`).catch((e) => {
+        const docsPromise = fetchJson(`/paciente/${encodeURIComponent(utenteId)}/documentos`).catch((e) => {
           docsErr = e?.message || 'Erro ao carregar documentos.';
           return [];
         });
@@ -288,10 +303,11 @@ export default function PacienteInfo() {
     const token = localStorage.getItem('token');
     const fd = new FormData();
     fd.append('file', file);
+    const url = getFullUrl(`/paciente/${encodeURIComponent(utenteId)}/documentos`);
 
     let res;
     try {
-      res = await fetch(`/paciente/${encodeURIComponent(utenteId)}/documentos`, {
+      res = await fetch(url, {
         method: 'POST',
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -325,10 +341,11 @@ export default function PacienteInfo() {
   async function downloadDoc(doc) {
     setDocsError('');
     const token = localStorage.getItem('token');
+    const url = getFullUrl(`/paciente/${encodeURIComponent(utenteId)}/documentos/${encodeURIComponent(doc.id)}`);
 
     let res;
     try {
-      res = await fetch(`/paciente/${encodeURIComponent(utenteId)}/documentos/${encodeURIComponent(doc.id)}`, {
+      res = await fetch(url, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
@@ -352,14 +369,14 @@ export default function PacienteInfo() {
     }
 
     const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
+    const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
+    a.href = blobUrl;
     a.download = doc?.originalName || 'documento.pdf';
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(blobUrl);
   }
 
   async function deleteDoc(doc) {
@@ -369,10 +386,11 @@ export default function PacienteInfo() {
 
     setDocsError('');
     const token = localStorage.getItem('token');
+    const url = getFullUrl(`/paciente/${encodeURIComponent(utenteId)}/documentos/${encodeURIComponent(doc.id)}`);
 
     let res;
     try {
-      res = await fetch(`/paciente/${encodeURIComponent(utenteId)}/documentos/${encodeURIComponent(doc.id)}`, {
+      res = await fetch(url, {
         method: 'DELETE',
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),

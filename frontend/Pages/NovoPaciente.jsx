@@ -1,7 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './novopaciente.css';
+
 const API = import.meta.env.VITE_API_URL;
+
+/**
+ * Normalizes the URL to prevent double slashes or missing slashes
+ */
+function getFullUrl(endpoint) {
+  const base = API.endsWith('/') ? API.slice(0, -1) : API;
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${base}${path}`;
+}
 
 const initialState = {
   nome: '',
@@ -52,9 +62,11 @@ export default function NovoPaciente() {
       try {
         const token = localStorage.getItem('token');
         const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+        
+        // Use getFullUrl for initial data loading
         const [rg, rec] = await Promise.all([
-          fetch(`${API}/genero`, { headers: { ...authHeaders } }).catch(() => null),
-          fetch(`${API}/estadocivil`, { headers: { ...authHeaders } }).catch(() => null),
+          fetch(getFullUrl('/genero'), { headers: { ...authHeaders } }).catch(() => null),
+          fetch(getFullUrl('/estadocivil'), { headers: { ...authHeaders } }).catch(() => null),
         ]);
 
         if (rg && rg.ok) {
@@ -106,11 +118,13 @@ export default function NovoPaciente() {
     const v = validate();
     if (v) return setError(v);
     setLoading(true);
+    
     try {
       const token = localStorage.getItem('token');
       const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const fetchRefList = async (url) => {
+      const fetchRefList = async (endpoint) => {
+        const url = getFullUrl(endpoint);
         const r = await fetch(url, { headers: { ...authHeaders } }).catch(() => null);
         if (!r || !r.ok) return [];
         const data = await r.json().catch(() => []);
@@ -122,8 +136,8 @@ export default function NovoPaciente() {
       const needsEstadoLookup = !!String(form.estado_civil || '').trim() && !looksNumericId(form.estado_civil);
 
       const [generos, estadosCivis] = await Promise.all([
-        needsGeneroLookup ? fetchRefList(`${API}/genero`) : Promise.resolve([]),
-        needsEstadoLookup ? fetchRefList(`${API}/estadocivil`) : Promise.resolve([]),
+        needsGeneroLookup ? fetchRefList('/genero') : Promise.resolve([]),
+        needsEstadoLookup ? fetchRefList('/estadocivil') : Promise.resolve([]),
       ]);
 
       const resolveGeneroId = () => {
@@ -184,7 +198,7 @@ export default function NovoPaciente() {
         return null;
       };
 
-      const res = await fetch(`${API}/paciente`, {
+      const res = await fetch(getFullUrl('/paciente'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify(payload)
@@ -228,7 +242,8 @@ export default function NovoPaciente() {
         historico_cirurgico: form.historico_cirurgias || null
       };
 
-      const postClinical = async (url, body) => {
+      const postClinical = async (endpoint, body) => {
+        const url = getFullUrl(endpoint);
         const r = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...authHeaders },
@@ -236,7 +251,7 @@ export default function NovoPaciente() {
         });
         if (!r.ok) {
           const errData = await r.json().catch(() => ({}));
-          throw new Error(errData.message || `Erro ao guardar ${url} (${r.status})`);
+          throw new Error(errData.message || `Erro ao guardar ${endpoint} (${r.status})`);
         }
       };
 
