@@ -45,16 +45,30 @@ function getDatabaseConfigFromEnv() {
 const dbCfg = getDatabaseConfigFromEnv();
 
 let sequelize;
+
 if (dbCfg.url) {
-  sequelize = new Sequelize(dbCfg.url, { logging: false });
+  // Render (produção)
+  sequelize = new Sequelize(dbCfg.url, {
+    dialect: "postgres",
+    protocol: "postgres",
+    logging: false,
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    }
+  });
 } else {
+  // Local (desenvolvimento)
   sequelize = new Sequelize(dbCfg.name, dbCfg.user, dbCfg.pass, {
     host: dbCfg.host,
     port: dbCfg.port,
     dialect: dbCfg.dialect,
-    logging: false,
+    logging: false
   });
 }
+
 
 const initModels = require('./init-models');
 const models = initModels(sequelize);
