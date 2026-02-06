@@ -265,7 +265,7 @@ export default function NovoPaciente() {
       }
       if (data.temp_password) {
         setSuccess(
-          `${isDependente ? 'Dependente' : 'Paciente'} guardado. Credenciais provisórias enviadas por email (senha: ${data.temp_password}).${clinicalWarning}`
+          `${isDependente ? 'Dependente' : 'Paciente'} guardado. Credenciais provisórias: ${data.temp_password}).${clinicalWarning}`
         );
       } else {
         setSuccess(`${isDependente ? 'Dependente' : 'Paciente'} guardado com sucesso.${clinicalWarning}`);
