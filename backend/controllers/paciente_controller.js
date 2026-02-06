@@ -199,12 +199,10 @@ exports.create = async (req, res) => {
 
       await t.commit();
 
-      // If mailer not configured and in development, return the generated password so devs can verify
-      if (!isConfigured() && (!process.env.NODE_ENV || process.env.NODE_ENV === 'development')) {
-        return res.status(201).json({ paciente: created, temp_password: password });
-      }
-
-      return res.status(201).json(created);
+      // Return the generated password in the response so the Backoffice UI can show it
+      // (email delivery can fail/misconfigure; this gives an immediate fallback).
+      const createdJson = typeof created?.toJSON === 'function' ? created.toJSON() : created;
+      return res.status(201).json({ ...createdJson, temp_password: password });
     }
 
     // No email: still create/link a user so the patient appears in the list
